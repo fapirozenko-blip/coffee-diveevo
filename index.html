@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#faf8f5">
+  <meta name="description" content="Меню кофейни в Дивееве, часы работы, контакты и маршрут.">
+  <title>Кофейня в Дивееве</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Prata&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="./style.css">
+  <script src="./script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">К содержанию</a>
+  <aside class="announcements" id="announcements" aria-label="Объявления" hidden></aside>
+  <header class="header">
+    <div class="shell header-inner">
+      <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true">✳</span><span data-name>Кофейня в Дивееве</span></a>
+      <nav aria-label="Навигация">
+        <a href="#menu">Меню</a><a href="#about">О нас</a>
+        <a href="#contacts">Контакты</a><a href="#directions">Как добраться</a>
+      </nav>
+      <p class="status" id="status"><span class="status-dot" aria-hidden="true"></span><span id="status-text">Уточняем часы работы</span></p>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="shell hero-inner">
+        <div class="hero-copy">
+          <p class="eyebrow hero-location" id="hero-name">Кофейня в Дивееве</p>
+          <h1 id="hero-title"><span>То самое место,</span><em>где хорошо</em></h1>
+          <p class="hero-description" id="hero-description">Кофе, завтраки весь день и время для себя в самом сердце Дивеева.</p>
+          <div class="actions">
+            <a class="button button-primary" href="#menu">Смотреть меню</a>
+            <a class="button button-outline" id="hero-route" href="#directions">Построить маршрут</a>
+          </div>
+          <ul class="amenities" data-amenities></ul>
+        </div>
+        <div class="hero-visual" id="hero-visual" aria-hidden="true">
+          <div class="hero-art" id="hero-art">
+            <div class="saucer"><div class="cup"><div class="latte"><span></span><span></span><span></span><span></span><i></i></div></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section shell" id="showcase" aria-labelledby="showcase-title">
+      <div class="section-heading">
+        <div><p class="eyebrow">Сегодня в кофейне</p><h2 id="showcase-title">Витрина и блюдо дня</h2></div>
+        <p class="data-note" id="showcase-note" hidden>Пример витрины</p>
+      </div>
+      <div class="showcase-grid" id="showcase-grid"></div>
+    </section>
+
+    <section class="menu-section section" id="menu" aria-labelledby="menu-title">
+      <div class="shell section-heading">
+        <div><p class="eyebrow">Кофе и еда</p><h2 id="menu-title">Меню</h2></div>
+        <p class="data-note" id="menu-note" hidden>Пример меню</p>
+      </div>
+      <div class="menu-controls">
+        <div class="shell">
+          <div class="category-bar" id="categories" role="group" aria-label="Категории меню"></div>
+          <div class="tag-bar" id="filters" role="group" aria-label="Фильтр по тегам"></div>
+        </div>
+      </div>
+      <div class="shell">
+        <p class="sr-only" id="menu-count" role="status"></p>
+        <div class="menu-grid" id="menu-grid"></div>
+        <p class="empty-menu" id="empty-menu" hidden></p>
+      </div>
+    </section>
+
+    <section class="section shell about" id="about" aria-labelledby="about-title">
+      <div class="about-copy">
+        <p class="eyebrow">О нас</p>
+        <h2 id="about-title">Здесь можно выдохнуть</h2>
+        <p id="about-text">Загляните на кофе, сделайте паузу в дороге или задержитесь за поздним завтраком.</p>
+        <ul class="amenities" data-amenities></ul>
+      </div>
+      <div class="gallery" id="gallery" data-empty>
+        <div class="quote-card" id="gallery-quote"><span aria-hidden="true">✳</span><p id="quote">То самое место,<br>где хорошо</p></div>
+      </div>
+    </section>
+
+    <section class="contact-section" id="contacts" aria-labelledby="contact-title">
+      <div class="section shell">
+        <p class="eyebrow">В гости</p>
+        <h2 id="contact-title">Контакты и как добраться</h2>
+        <div class="contact-grid">
+          <div class="contact-info">
+            <div><h3>Адрес</h3><address id="address">с. Дивеево, Нижегородская область</address><p class="muted" id="landmark" hidden></p></div>
+            <div id="hours-block" hidden><h3>Часы работы <span class="data-note" id="hours-note" hidden>Пример графика</span></h3><dl class="hours" id="hours"></dl><p class="muted" id="special-hours" hidden></p></div>
+            <div id="phone-block" hidden><h3>Телефон</h3><a id="phone"></a></div>
+            <div class="actions social" id="social" hidden>
+              <a class="button button-outline" id="telegram" hidden>Telegram</a>
+              <a class="button button-outline" id="vk" hidden>VK</a>
+            </div>
+          </div>
+          <div class="directions" id="directions">
+            <div class="map" id="map">
+              <div class="map-placeholder"><span aria-hidden="true">◎</span><p id="map-placeholder-text">Дивеево, Нижегородская область</p></div>
+              <a class="map-overlay" id="map-link" hidden><span>Нажмите, чтобы построить маршрут</span></a>
+            </div>
+            <p id="map-note" class="muted">Точный адрес пока не указан.</p>
+            <div class="actions">
+              <a class="button button-primary" id="yandex" hidden>Маршрут в Яндекс Картах</a>
+              <a class="button button-outline" id="gis" hidden>Открыть в 2ГИС</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="footer"><div class="shell"><a class="brand" href="#top"><span class="brand-mark" aria-hidden="true">✳</span><span data-name>Кофейня в Дивееве</span></a><a href="#top">Наверх</a></div></footer>
+  <noscript><p class="shell">Включите JavaScript, чтобы увидеть меню и часы работы.</p></noscript>
+</body>
+</html>
