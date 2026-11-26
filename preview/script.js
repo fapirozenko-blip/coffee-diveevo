@@ -381,7 +381,7 @@ function renderShowcase() {
   $("showcase-note").hidden = !demo.showcase;
   $("showcase-grid").replaceChildren(...active.map((item) => {
     const card = node("article", "showcase-card");
-    const photo = httpUrl(item["Фото"]); if (photo) addImage(card, photo, item["Название"]); else card.classList.add("menu-card--no-photo");
+    const photo = httpUrl(item["Фото"]); if (photo) addImage(card, photo, item["Название"], { onError: () => card.classList.add("menu-card--no-photo") }); else card.classList.add("menu-card--no-photo");
     addText(card, "p", "eyebrow", item["Тип"]);
     addText(card, "h3", "", item["Название"]);
     addText(card, "p", "muted", item["Описание"]);
