@@ -226,3 +226,5 @@ section[id], #directions { scroll-margin-top: 1rem; }
 .menu-bottom button{font:inherit;cursor:pointer;min-height:44px}
 .price-variants{display:grid;gap:4px;width:100%}.price-variant{display:flex;justify-content:space-between;gap:8px}
 @media(max-width:640px){.menu-scroll{max-height:48svh;padding-right:5px}.menu-bottom{flex-wrap:wrap}.menu-controls .shell{padding-bottom:6px}.category-bar,.tag-bar{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:thin}.category-bar button,.tag-bar button{flex-shrink:0}.menu-search{margin:5px 0;padding:10px 12px}}
+
+.menu-more-wrap{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:24px}.menu-more-wrap button{font:inherit;cursor:pointer;min-height:44px}.menu-section .menu-grid{overflow:visible;max-height:none}.menu-more-wrap #menu-collapse{border-color:transparent}.menu-more-wrap button:hover{background:#eee6dc}
