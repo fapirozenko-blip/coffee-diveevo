@@ -264,17 +264,23 @@ function renderMenu() {
   if (!categories.has(selectedCategory)) selectedCategory = "";
   $("menu-note").hidden = !demo.menu;
   renderButtons($("categories"), [{ value: "", label: "Все категории" }, ...Array.from(categories, ([value, label]) => ({ value, label }))],
-    selectedCategory, (value) => { selectedCategory = value; });
-  filters = ["Все", ...new Set(menu.flatMap(item => item.tags).filter(tag => key(tag) !== "все"))];
-  if (!filters.includes(selectedTag)) selectedTag = "Все";
+    selectedCategory, (value) => { selectedCategory = value; renderTagFilters(); });
+
   if (!$("menu-search")) {
     const search = node("input", "menu-search"); search.id = "menu-search"; search.type = "search"; search.placeholder = "Найти блюдо или напиток"; search.setAttribute("aria-label", "Поиск по меню"); search.addEventListener("input", () => { searchText = key(search.value); renderMenuItems(); }); $("categories").before(search);
   }
-  renderButtons($("filters"), filters.map((label) => ({ label, value: label })),
-    selectedTag, (value) => { selectedTag = value; });
+  renderTagFilters();
   renderMenuItems();
 }
 
+function renderTagFilters() {
+ const tags = new Map();
+ for(const item of menu) if(!selectedCategory || item.categoryKey===selectedCategory) for(const tag of item.tags) if(key(tag)!=="все"&&!tags.has(key(tag))) tags.set(key(tag),tag);
+ filters=["Все",...tags.values()];
+ if(!filters.includes(selectedTag)) selectedTag="Все";
+ $("filters").hidden=filters.length===1;
+ renderButtons($("filters"),filters.map(label=>({label,value:label})),selectedTag,value=>{selectedTag=value;});
+}
 function renderMenuItems() {
   const visible = menu.filter((item) => (!searchText || key([item["Название"], item["Описание"], item["Категория"], ...item.tags].join(" ")).includes(searchText)) && (!selectedCategory || item.categoryKey === selectedCategory)
     && (selectedTag === filters[0] || item.tags.some((tag) => key(tag) === key(selectedTag))));
@@ -503,7 +509,18 @@ function renderContacts() {
   const vkCandidate = httpUrl(setting("VK", "Ссылка VK", "Ссылка на VK", "ВКонтакте")); const vk = vkCandidate && vkCandidate.pathname !== "/" ? vkCandidate : null;
   link("telegram", telegram);
   link("vk", vk);
-  $("social").hidden = !telegram && !vk;
+  const social=$("social");
+  social.querySelectorAll("[data-custom-contact]").forEach(el=>el.remove());
+  for(const [name,value] of settings){
+    const match=name.match(/^(?:контакт|соцсеть|канал)\s*:\s*(.+)$/);
+    if(!match||!value)continue;
+    const url=httpUrl(value);
+    const el=node(url?"a":"span",url?"button button-outline":"custom-contact",match[1]+(url?"":": "+value));
+    el.dataset.customContact="true";
+    if(url){el.href=url.href;el.target="_blank";el.rel="noopener noreferrer";}
+    social.append(el);
+  }
+  social.hidden = !telegram && !vk && !social.querySelector("[data-custom-contact]");
 
   let route = httpUrl(setting("Маршрут в Яндекс Картах", "Ссылка на Яндекс Карты", "Ссылка Яндекс Карты", "Яндекс Карты", "Яндекс маршрут", "Ссылка на маршрут", "Маршрут Яндекс", "Ссылка Яндекс", "Ссылка на Яндекс Маршрут"));
   const destination = route?.searchParams.get("rtext")?.split("~").filter(Boolean).at(-1);
