@@ -264,22 +264,32 @@ function addImage(parent, url, alt, options = {}) {
     image.setAttribute("aria-label", "Увеличить фотографию");
     image.style.cursor = "zoom-in";
     const open = () => {
+      if (document.querySelector(".gallery-photo-dialog")) return;
       const dialog = document.createElement("dialog");
+      dialog.className = "gallery-photo-dialog";
       dialog.setAttribute("aria-label", "Фотография кофейни");
-      dialog.style.cssText = "position:fixed;inset:0;margin:auto;padding:12px;border:0;border-radius:16px;background:#fff;max-width:94vw;max-height:94vh;overflow:auto;";
+      const panel = document.createElement("div");
+      panel.className = "gallery-photo-dialog-panel";
       const full = document.createElement("img");
+      full.className = "gallery-photo-full";
       full.src = image.currentSrc || image.src;
       full.alt = image.alt;
-      full.style.cssText = "display:block;max-width:85vw;max-height:78vh;width:auto;height:auto;object-fit:contain;margin:auto;";
       const close = document.createElement("button");
       close.type = "button";
-      close.textContent = "Закрыть ×";
-      close.style.cssText = "display:block;margin:0 0 10px auto;padding:8px 14px;cursor:pointer;";
-      close.onclick = () => dialog.close();
-      dialog.append(close, full);
-      dialog.addEventListener("close", () => { dialog.remove(); if (!image.hidden && image.isConnected) image.focus(); }, {once:true});
+      close.className = "gallery-photo-close";
+      close.setAttribute("aria-label", "Закрыть фотографию");
+      close.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      close.addEventListener("click", () => dialog.close());
+      dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
+      dialog.addEventListener("close", () => {
+        dialog.remove();
+        if (image.isConnected) image.focus({preventScroll:true});
+      }, {once:true});
+      panel.append(full, close);
+      dialog.append(panel);
       document.body.append(dialog);
       dialog.showModal();
+      close.focus();
     };
     image.addEventListener("click", open);
     image.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
@@ -690,8 +700,31 @@ function setupGallery(gallery) {
  let index=0, paused=false;
  const photos=()=>[...gallery.querySelectorAll("img")];
  const controls=node("div","gallery-controls");
- const show=(delta=0)=>{const list=photos(); if(!list.length){const quote=gallery.querySelector(".quote-card");if(quote)quote.hidden=false;controls.hidden=true;return;} index=((index+delta)%list.length+list.length)%list.length; list.forEach((img,i)=>img.hidden=i!==index); const quote=gallery.querySelector(".quote-card"); if(quote)quote.hidden=true;};
- if(photos().length){show(); if(photos().length>1){for(const [label,delta] of [["‹",-1],["›",1]]){const b=node("button","",label);b.type="button";b.setAttribute("aria-label",delta<0?"Предыдущее фото":"Следующее фото");b.onclick=()=>{paused=true;show(delta);};controls.append(b);}const pause=node("button","","Пауза");pause.type="button";pause.onclick=()=>{paused=!paused;pause.textContent=paused?"Продолжить":"Пауза";};controls.append(pause);gallery.append(controls);if(!matchMedia("(prefers-reduced-motion: reduce)").matches)galleryTimer=setInterval(()=>{if(!paused&&!document.hidden)show(1);},6000);}}
+ const arrow=(direction,delta)=>{
+   const b=node("button","gallery-arrow");
+   b.type="button";
+   b.setAttribute("aria-label",direction==="prev"?"Предыдущее фото":"Следующее фото");
+   b.innerHTML=direction==="prev"
+     ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>'
+     : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
+   b.addEventListener("click",()=>{paused=true;show(delta);});
+   return b;
+ };
+ const show=(delta=0)=>{const list=photos(); if(!list.length){const quote=gallery.querySelector(".quote-card");if(quote)quote.hidden=false;controls.hidden=true;return;} index=((index+delta)%list.length+list.length)%list.length; list.forEach((img,i)=>{img.hidden=i!==index;img.setAttribute("aria-hidden",String(i!==index));}); const quote=gallery.querySelector(".quote-card"); if(quote)quote.hidden=true;};
+ if(photos().length){
+   show();
+   if(photos().length>1){
+     controls.append(arrow("prev",-1),arrow("next",1));
+     gallery.append(controls);
+     gallery.addEventListener("mouseenter",()=>{paused=true;});
+     gallery.addEventListener("mouseleave",()=>{paused=false;});
+     gallery.addEventListener("focusin",()=>{paused=true;});
+     gallery.addEventListener("focusout",event=>{if(!gallery.contains(event.relatedTarget))paused=false;});
+     gallery.addEventListener("touchstart",()=>{paused=true;},{passive:true});
+     gallery.addEventListener("touchend",()=>{paused=false;},{passive:true});
+     if(!matchMedia("(prefers-reduced-motion: reduce)").matches)galleryTimer=setInterval(()=>{if(!paused&&!document.hidden)show(1);},6500);
+   }
+ }
 }
 function applySections(){
  const ids={"акции":"announcements","витрина":"showcase","меню":"menu","о нас":"about","контакты":"contacts"};
