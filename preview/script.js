@@ -2,9 +2,9 @@
 
 const spreadsheetUrl = "https://docs.google.com/spreadsheets/d/1xJno03epbyJtxuAWT6uYdtIqZ1eaveS4Z5aMZHIgGbk/edit";
 const spreadsheetId = spreadsheetUrl.match(/\/d\/([^/]+)/)[1];
-const cacheKey = `coffee-diveevo:${spreadsheetId}:v4`;
+const cacheKey = `coffee-diveevo:${spreadsheetId}:v5`;
 const sheets = {
-  menu: { name: "Меню", columns: ["Категория", "Название", "Описание", "Объем", "Цена", "Теги", "Фото", "Наличие"] },
+  menu: { name: "Меню", columns: ["Категория", "Название", "Описание", "Объем", "Цена", "Теги", "Фото", "Наличие", "Блюдо дня"] },
   showcase: { name: "Витрина", columns: ["Тип", "Название", "Описание", "Цена", "Активно", "Фото"] },
   promos: { name: "Акции", columns: ["Заголовок", "Текст", "Активно", "Фото"] },
   settings: { name: "Настройки", columns: ["Параметр", "Значение"] }
@@ -98,6 +98,24 @@ const starterRows = {
   sections: [["Акции","True","1"],["Витрина","True","2"],["Меню","True","3"],["О нас","True","4"],["Контакты","True","5"]],
   exceptions: []
 };
+
+// Витрина управляется единственным флажком в листе «Меню».
+starterRows.menu = starterRows.menu.map((row) => {
+  const item = [...row, "Нет"];
+  if (item[1] === "Суп дня") {
+    item[1] = "Овощной крем-суп с гренками";
+    item[2] = "Готовим каждое утро из свежих овощей (можно постный вариант)";
+    item[3] = "300 мл";
+    item[4] = "300";
+    item[6] = "https://fapirozenko-blip.github.io/coffee-diveevo/preview/images/showcase-soup.svg";
+    item[8] = "Да";
+  }
+  return item;
+});
+starterRows.menu.push(
+  ["Десерты", "Чизкейк Нью-Йорк", "Классический сливочный чизкейк на песочной основе", "1 порция", "290", "", "https://fapirozenko-blip.github.io/coffee-diveevo/preview/images/showcase-cheesecake.svg", "Да", "Да"],
+  ["Десерты", "Медовик домашний", "Тонкие медовые коржи со сметанным кремом", "1 порция", "270", "", "https://fapirozenko-blip.github.io/coffee-diveevo/preview/images/showcase-honey-cake.svg", "Да", "Да"]
+);
 
 const $ = (id) => document.getElementById(id);
 const clean = (value) => String(value ?? "").trim();
@@ -376,15 +394,18 @@ function renderPromos() {
 }
 
 function renderShowcase() {
-  const active = records("showcase", rows.showcase).filter((item) => isYes(item["Активно"]) && item["Название"]);
+  const active = records("menu", rows.menu).filter((item) => isYes(item["Наличие"]) && isYes(item["Блюдо дня"]) && item["Название"]);
   $("showcase").hidden = !active.length;
-  $("showcase-note").hidden = !demo.showcase;
+  $("showcase-note").hidden = !demo.menu;
   $("showcase-grid").replaceChildren(...active.map((item) => {
     const card = node("article", "showcase-card");
     const photo = httpUrl(item["Фото"]); if (photo) addImage(card, photo, item["Название"], { onError: () => card.classList.add("menu-card--no-photo") }); else card.classList.add("menu-card--no-photo");
-    addText(card, "p", "eyebrow", item["Тип"]);
+    const category = key(item["Категория"]);
+    const label = category === "десерты" ? "Десерт на витрине" : category === "основные блюда" ? "Блюдо дня" : "Выбор дня";
+    addText(card, "p", "eyebrow", label);
     addText(card, "h3", "", item["Название"]);
     addText(card, "p", "muted", item["Описание"]);
+    addText(card, "p", "volume", item["Объем"]);
     addText(card, "p", "price", rubles(item["Цена"]));
     return card;
   }));
@@ -872,7 +893,7 @@ function applySections(){
  for(const item of list){const el=$(ids[key(item["Раздел"])]);if(!el)continue; if(!isYes(item["Активно"]))el.hidden=true;else if(el.id!=="announcements"&&el.id!=="showcase")el.hidden=false; $("main").append(el);}
  document.querySelectorAll('a[href^="#"]').forEach(a=>{const id=a.getAttribute("href").slice(1);const target=$(id);if(target&&["menu","about","contacts","directions"].includes(id))a.hidden=target.hidden||Boolean(target.closest("[hidden]"));});
 }
-const renderers = { menu: renderMenu, showcase: renderShowcase, promos: renderPromos, settings: renderSettings, gallery:renderIntro, amenities:renderIntro, sections:()=>{renderPromos();renderShowcase();applySections();}, exceptions:renderHours };
+const renderers = { menu:()=>{renderMenu();renderShowcase();}, promos: renderPromos, settings: renderSettings, gallery:renderIntro, amenities:renderIntro, sections:()=>{renderPromos();renderShowcase();applySections();}, exceptions:renderHours };
 for (const render of Object.values(renderers)) render();
 applySections();
 window.setInterval(updateStatus, 15000);
