@@ -10,7 +10,9 @@ const sheets = {
   settings: { name: "Настройки", columns: ["Параметр", "Значение"] }
 };
 
+Object.assign(sheets, { gallery:{name:"Галерея",columns:["Фото","Подпись","Активно","Порядок"]}, amenities:{name:"Удобства",columns:["Название","Активно"]}, sections:{name:"Разделы",columns:["Раздел","Активно","Порядок"]}, exceptions:{name:"Расписание",columns:["Дата исключения (ГГГГ-ММ-ДД)","Открытие (ЧЧ:ММ)","Закрытие (ЧЧ:ММ)","Закрыто весь день","Комментарий"]} });
 const starterRows = {
+ gallery:[], amenities:[], sections:[], exceptions:[],
   menu: [
     ["Кофе", "Эспрессо", "Плотный и насыщенный чёрный кофе.", "40 мл", "160", "", "", "Да"],
     ["Кофе", "Капучино", "Эспрессо и молоко с нежной пеной.", "200 / 300 мл", "250 / 330 ₽", "Хит", "", "Да"],
@@ -178,6 +180,7 @@ function settingOrDefault(...names) {
 
 function rubles(price) {
   if (!price) return "";
+  price = String(price);
   if (/[₽]|руб\.?|\bRUB\b/i.test(price)) return price;
   return `${price} ₽`;
 }
@@ -316,7 +319,7 @@ function renderIntro() {
   $("about-title").textContent = settingOrDefault("Заголовок о нас", "Заголовок «О нас»");
   $("about-text").textContent = settingOrDefault("Текст о нас", "О нас", "Описание кофейни");
   $("quote").textContent = slogan;
-  const amenities = splitList(settingOrDefault("Удобства"));
+  const amenities = demo.amenities ? splitList(settingOrDefault("Удобства")) : records("amenities",rows.amenities).filter(x=>isYes(x["Активно"])).map(x=>x["Название"]).filter(Boolean);
   document.querySelectorAll("[data-amenities]").forEach((list) => {
     list.replaceChildren(...amenities.map((text) => node("li", "", text)));
   });
@@ -337,7 +340,8 @@ function renderIntro() {
       if (url) images.set(url.href, url);
     }
   }
-  gallery.replaceChildren($("gallery-quote"));
+  if (!demo.gallery) { images.clear(); for (const item of records("gallery",rows.gallery).filter(x=>isYes(x["Активно"])).sort((a,b)=>Number(a["Порядок"])-Number(b["Порядок"]))) { const url=httpUrl(item["Фото"]); if(url) images.set(url.href,url); } }
+  gallery.replaceChildren($("gallery-quote") || node("div","quote-card",slogan));
   function updateGalleryLayout() {
     const count = gallery.querySelectorAll("img").length;
     gallery.toggleAttribute("data-empty", count === 0);
@@ -349,6 +353,7 @@ function renderIntro() {
     });
   }
   updateGalleryLayout();
+  setupGallery(gallery);
 }
 
 const moscowClock = new Intl.DateTimeFormat("en-GB", {
@@ -447,7 +452,8 @@ function updateStatus() {
 function renderHours() {
   const weekdays = setting("Режим Пн-Пт");
   const weekends = setting("Режим Сб-Вс");
-  const special = setting("Особый режим");
+  const extra = records("exceptions",rows.exceptions).map(x=>{const date=x["Дата исключения (ГГГГ-ММ-ДД)"]; if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return ""; return isYes(x["Закрыто весь день"])?date+" закрыто":date+" "+x["Открытие (ЧЧ:ММ)"]+"-"+x["Закрытие (ЧЧ:ММ)"];}).filter(Boolean).join("; ");
+  const special = [extra,setting("Особый режим")].filter(Boolean).join("; ");
   schedule = { weekday: parseHours(weekdays), weekend: parseHours(weekends), special };
   $("hours").replaceChildren(...[["Пн–Пт", weekdays], ["Сб–Вс", weekends]].flatMap(([label, value]) => {
     return value ? [node("dt", "", label), node("dd", "", value)] : [];
@@ -561,8 +567,24 @@ function renderSettings() {
   renderContacts();
 }
 
-const renderers = { menu: renderMenu, showcase: renderShowcase, promos: renderPromos, settings: renderSettings };
+let galleryTimer;
+function setupGallery(gallery) {
+ clearInterval(galleryTimer);
+ let index=0, paused=false;
+ const photos=()=>[...gallery.querySelectorAll("img")];
+ const controls=node("div","gallery-controls");
+ const show=(delta=0)=>{const list=photos(); if(!list.length)return; index=(index+delta+list.length)%list.length; list.forEach((img,i)=>img.hidden=i!==index); const quote=gallery.querySelector(".quote-card"); if(quote)quote.hidden=true;};
+ if(photos().length){show(); if(photos().length>1){for(const [label,delta] of [["‹",-1],["›",1]]){const b=node("button","",label);b.type="button";b.setAttribute("aria-label",delta<0?"Предыдущее фото":"Следующее фото");b.onclick=()=>{paused=true;show(delta);};controls.append(b);}const pause=node("button","","Пауза");pause.type="button";pause.onclick=()=>{paused=!paused;pause.textContent=paused?"Продолжить":"Пауза";};controls.append(pause);gallery.append(controls);if(!matchMedia("(prefers-reduced-motion: reduce)").matches)galleryTimer=setInterval(()=>{if(!paused&&!document.hidden)show(1);},6000);}}
+}
+function applySections(){
+ const ids={"акции":"announcements","витрина":"showcase","меню":"menu","о нас":"about","контакты":"contacts"};
+ const list=records("sections",rows.sections).sort((a,b)=>Number(a["Порядок"])-Number(b["Порядок"]));
+ for(const item of list){const el=$(ids[key(item["Раздел"])]);if(!el)continue; if(!isYes(item["Активно"]))el.hidden=true;else if(el.id!=="announcements"&&el.id!=="showcase")el.hidden=false; $("main").append(el);}
+ document.querySelectorAll('a[href^="#"]').forEach(a=>{const id=a.getAttribute("href").slice(1);const target=$(id);if(target&&["menu","about","contacts","directions"].includes(id))a.hidden=target.hidden||Boolean(target.closest("[hidden]"));});
+}
+const renderers = { menu: renderMenu, showcase: renderShowcase, promos: renderPromos, settings: renderSettings, gallery:renderIntro, amenities:renderIntro, sections:()=>{renderPromos();renderShowcase();applySections();}, exceptions:renderHours };
 for (const render of Object.values(renderers)) render();
+applySections();
 window.setInterval(updateStatus, 15000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) updateStatus(); });
 
@@ -577,6 +599,7 @@ for (const [kind, render] of Object.entries(renderers)) {
       // Данные всё равно доступны в текущей вкладке.
     }
     render();
+    applySections();
   }).catch((error) => {
     console.warn(`Лист «${sheets[kind].name}» не обновился:`, error.message);
   });
