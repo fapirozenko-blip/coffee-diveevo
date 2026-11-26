@@ -531,3 +531,10 @@ section[id], #directions { scroll-margin-top: 1rem; }
   .gallery-photo-dots { bottom: 9px; }
   .gallery-photo-close { top: 8px; right: 8px; }
 }
+
+
+/* Hero slideshow: decorative, non-interactive, and independent from the About gallery. */
+.hero-visual.hero-slideshow { position: relative; isolation: isolate; }
+.hero-visual .hero-slide { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .65s ease; pointer-events: none; user-select: none; }
+.hero-visual .hero-slide.is-active { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .hero-visual .hero-slide { transition: none; } }
