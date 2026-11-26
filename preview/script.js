@@ -200,6 +200,32 @@ function addImage(parent, url, alt, options = {}) {
   }, { once: true });
   image.src = url.href;
   parent.append(image);
+  if (parent.id === "gallery") {
+    image.tabIndex = 0;
+    image.setAttribute("role", "button");
+    image.setAttribute("aria-label", "Увеличить фотографию");
+    image.style.cursor = "zoom-in";
+    const open = () => {
+      const dialog = document.createElement("dialog");
+      dialog.setAttribute("aria-label", "Фотография кофейни");
+      dialog.style.cssText = "position:fixed;inset:0;margin:auto;padding:12px;border:0;border-radius:16px;background:#fff;max-width:94vw;max-height:94vh;overflow:auto;";
+      const full = document.createElement("img");
+      full.src = image.currentSrc || image.src;
+      full.alt = image.alt;
+      full.style.cssText = "display:block;max-width:85vw;max-height:78vh;width:auto;height:auto;object-fit:contain;margin:auto;";
+      const close = document.createElement("button");
+      close.type = "button";
+      close.textContent = "Закрыть ×";
+      close.style.cssText = "display:block;margin:0 0 10px auto;padding:8px 14px;cursor:pointer;";
+      close.onclick = () => dialog.close();
+      dialog.append(close, full);
+      dialog.addEventListener("close", () => { dialog.remove(); if (!image.hidden && image.isConnected) image.focus(); }, {once:true});
+      document.body.append(dialog);
+      dialog.showModal();
+    };
+    image.addEventListener("click", open);
+    image.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+  }
 }
 
 function renderPromos() {
