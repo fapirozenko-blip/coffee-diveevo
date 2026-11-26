@@ -599,3 +599,60 @@ section[id], #directions { scroll-margin-top: 1rem; }
 .menu-card--no-photo .item-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem 1rem}
 .menu-card--no-photo .muted{margin-top:.45rem}
 @media(max-width:640px){.menu-card--no-photo{display:block;min-height:0;padding:1rem}.menu-card--no-photo .menu-card-body{padding:0}.menu-card--no-photo .item-heading{display:flex;align-items:flex-start}}
+
+
+/* Equal-height menu cards: stretch within each grid row instead of top-aligning. */
+.menu-grid {
+  align-items: stretch !important;
+  grid-auto-rows: auto;
+}
+.menu-grid > .menu-card {
+  align-self: stretch !important;
+  height: 100%;
+  min-height: 0;
+}
+.menu-grid > .menu-card > img {
+  flex: 0 0 auto;
+  width: 100%;
+  aspect-ratio: 1.65 / 1;
+  object-fit: contain;
+  background: #f2ece4;
+}
+.menu-card-body { flex: 1 1 auto; }
+
+/* Showcase uses the same calm illustrated placeholder language as the menu. */
+.showcase-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  align-items: stretch;
+  gap: 1rem;
+}
+.showcase-card {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  height: 100%;
+  min-width: 0;
+  gap: .55rem;
+}
+.showcase-card > img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1.65 / 1;
+  height: auto;
+  object-fit: contain;
+  background: #f2ece4;
+  border-radius: 12px;
+  margin: 0 0 .5rem;
+}
+.showcase-card .price { margin-top: auto; padding-top: .55rem; }
+@media (max-width: 950px) {
+  .showcase-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+@media (max-width: 640px) {
+  .showcase-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+  .showcase-card { height: auto; }
+}
