@@ -589,3 +589,13 @@ section[id], #directions { scroll-margin-top: 1rem; }
 @media (max-width: 640px) {
   .menu-card { align-self: start; }
 }
+
+
+/* Compact, consistent menu cards for items without a dedicated image. */
+.menu-grid{align-items:start;grid-auto-rows:max-content}
+.menu-card{align-self:start;height:auto;min-height:0}
+.menu-card--no-photo{display:block;height:auto;min-height:0;padding:1.15rem 1.2rem;overflow:visible}
+.menu-card--no-photo .menu-card-body{width:100%;padding:0}
+.menu-card--no-photo .item-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem 1rem}
+.menu-card--no-photo .muted{margin-top:.45rem}
+@media(max-width:640px){.menu-card--no-photo{display:block;min-height:0;padding:1rem}.menu-card--no-photo .menu-card-body{padding:0}.menu-card--no-photo .item-heading{display:flex;align-items:flex-start}}
