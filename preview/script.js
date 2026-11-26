@@ -2,7 +2,7 @@
 
 const spreadsheetUrl = "https://docs.google.com/spreadsheets/d/1xJno03epbyJtxuAWT6uYdtIqZ1eaveS4Z5aMZHIgGbk/edit";
 const spreadsheetId = spreadsheetUrl.match(/\/d\/([^/]+)/)[1];
-const cacheKey = `coffee-diveevo:${spreadsheetId}:v2`;
+const cacheKey = `coffee-diveevo:${spreadsheetId}:v3`;
 const sheets = {
   menu: { name: "Меню", columns: ["Категория", "Название", "Описание", "Объем", "Цена", "Теги", "Фото", "Наличие"] },
   showcase: { name: "Витрина", columns: ["Тип", "Название", "Описание", "Цена", "Активно", "Фото"] },
