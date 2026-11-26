@@ -281,11 +281,12 @@ function renderTagFilters() {
  $("filters").hidden=filters.length===1;
  renderButtons($("filters"),filters.map(label=>({label,value:label})),selectedTag,value=>{selectedTag=value;});
 }
-function renderMenuItems() {
-  if ($("menu-scroll")) $("menu-scroll").scrollTop = 0;
+var menuLimit = 6;
+function renderMenuItems(keepLimit = false) {
+  if (!keepLimit) menuLimit = 6;
   const visible = menu.filter((item) => (!searchText || key([item["Название"], item["Описание"], item["Категория"], ...item.tags].join(" ")).includes(searchText)) && (!selectedCategory || item.categoryKey === selectedCategory)
     && (selectedTag === filters[0] || item.tags.some((tag) => key(tag) === key(selectedTag))));
-  $("menu-grid").replaceChildren(...visible.map((item) => {
+  $("menu-grid").replaceChildren(...visible.slice(0,menuLimit).map((item) => {
     const card = node("article", "menu-card");
     const photo = httpUrl(item["Фото"]);
     if (photo) addImage(card, photo, item["Название"]);
@@ -307,8 +308,10 @@ function renderMenuItems() {
   }));
   const emptyText = menu.length ? "По этим фильтрам ничего не найдено." : "Меню обновляется.";
   $("empty-menu").hidden = visible.length > 0;
-  if ($("menu-scroll")) $("menu-scroll").hidden = !visible.length;
-  if ($("menu-scroll-hint")) requestAnimationFrame(()=>{const el=$("menu-scroll"); $("menu-scroll-hint").hidden=!el || el.hidden || el.scrollHeight<=el.clientHeight+2;});
+  $("menu-more-wrap").hidden = visible.length <= 6;
+  $("menu-more").hidden = visible.length <= menuLimit;
+  $("menu-more").textContent = `Показать ещё (${Math.min(6, Math.max(0, visible.length-menuLimit))})`;
+  $("menu-collapse").hidden = menuLimit <= 6;
   $("empty-menu").textContent = emptyText;
   $("menu-count").textContent = visible.length ? `Позиций в меню: ${visible.length}` : emptyText;
 }
@@ -627,4 +630,6 @@ for (const [kind, render] of Object.entries(renderers)) {
   });
 }
 
-$("menu-next")?.addEventListener("click",()=>{let next=$("menu").nextElementSibling;while(next&&next.hidden)next=next.nextElementSibling;(next||document.querySelector("footer"))?.scrollIntoView({block:"start",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth"});});
+
+$("menu-more")?.addEventListener("click",()=>{menuLimit+=6;renderMenuItems(true);});
+$("menu-collapse")?.addEventListener("click",()=>{renderMenuItems();$("menu").scrollIntoView({block:"start",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth"});});
