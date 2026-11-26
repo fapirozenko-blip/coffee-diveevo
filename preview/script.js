@@ -434,18 +434,24 @@ function renderIntro() {
     if (!/^(фото интерьер[а-я]*|фото галереи|галерея)(?:[\s_-]*\d+)?$/.test(name)) continue;
     for (const part of value.split(/[\s;|]+|,(?=\s*https?:\/\/)/)) {
       const url = httpUrl(part);
-      if (url) images.set(url.href, url);
+      if (url) images.set(url.href, { url, caption: "Интерьер кофейни" });
     }
   }
-  if (!demo.gallery) { images.clear(); for (const item of records("gallery",rows.gallery).filter(x=>isYes(x["Активно"])).sort((a,b)=>Number(a["Порядок"])-Number(b["Порядок"]))) { const url=httpUrl(item["Фото"]); if(url) images.set(url.href,url); } }
+  if (!demo.gallery) {
+    images.clear();
+    for (const item of records("gallery",rows.gallery).filter(x=>isYes(x["Активно"])).sort((a,b)=>Number(a["Порядок"])-Number(b["Порядок"]))) {
+      const url=httpUrl(item["Фото"]);
+      if(url) images.set(url.href,{url,caption:item["Подпись"] || "Интерьер кофейни"});
+    }
+  }
   gallery.replaceChildren($("gallery-quote") || node("div","quote-card",slogan));
   function updateGalleryLayout() {
     const count = gallery.querySelectorAll("img").length;
     gallery.toggleAttribute("data-empty", count === 0);
     gallery.toggleAttribute("data-even", count > 0 && count % 2 === 0);
   }
-  for (const photo of images.values()) {
-    addImage(gallery, photo, "Интерьер кофейни", {
+  for (const {url,caption} of images.values()) {
+    addImage(gallery, url, caption, {
       onError: () => { updateGalleryLayout(); setupGallery(gallery); }
     });
   }
@@ -627,8 +633,10 @@ function renderContacts() {
     route.searchParams.set("rtext", `~${address}`);
     route.searchParams.set("rtt", "mt");
   }
-  const gis = httpUrl(setting("Открыть в 2ГИС", "2ГИС", "Ссылка на 2ГИС", "Ссылка 2ГИС", "2GIS"))
-    || new URL(`https://2gis.ru/search/${encodeURIComponent(point ? `${point.lat}, ${point.lon}` : location)}`);
+  const gisCandidate = httpUrl(setting("Открыть в 2ГИС", "2ГИС", "Ссылка на 2ГИС", "Ссылка 2ГИС", "2GIS"));
+  const gis = gisCandidate && gisCandidate.pathname !== "/"
+    ? gisCandidate
+    : new URL(`https://2gis.ru/search/${encodeURIComponent(point ? `${point.lat}, ${point.lon}` : location)}`);
   link("yandex", route);
   link("map-link", route);
   link("gis", gis);
