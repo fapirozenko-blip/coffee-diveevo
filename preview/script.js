@@ -2,7 +2,7 @@
 
 const spreadsheetUrl = "https://docs.google.com/spreadsheets/d/1xJno03epbyJtxuAWT6uYdtIqZ1eaveS4Z5aMZHIgGbk/edit";
 const spreadsheetId = spreadsheetUrl.match(/\/d\/([^/]+)/)[1];
-const cacheKey = `coffee-diveevo:${spreadsheetId}:v1`;
+const cacheKey = `coffee-diveevo:${spreadsheetId}:v2`;
 const sheets = {
   menu: { name: "Меню", columns: ["Категория", "Название", "Описание", "Объем", "Цена", "Теги", "Фото", "Наличие"] },
   showcase: { name: "Витрина", columns: ["Тип", "Название", "Описание", "Цена", "Активно", "Фото"] },
@@ -381,7 +381,7 @@ function renderShowcase() {
   $("showcase-note").hidden = !demo.showcase;
   $("showcase-grid").replaceChildren(...active.map((item) => {
     const card = node("article", "showcase-card");
-    const photo = httpUrl(item["Фото"]); if (photo) addImage(card, photo, item["Название"]);
+    const photo = httpUrl(item["Фото"]); if (photo) addImage(card, photo, item["Название"]); else card.classList.add("menu-card--no-photo");
     addText(card, "p", "eyebrow", item["Тип"]);
     addText(card, "h3", "", item["Название"]);
     addText(card, "p", "muted", item["Описание"]);
