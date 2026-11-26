@@ -285,10 +285,11 @@ function renderMenuItems() {
     const body = node("div", "menu-card-body");
     const heading = node("div", "item-heading");
     addText(heading, "h3", "", item["Название"]);
-    addText(heading, "p", "price", rubles(item["Цена"]));
+    const prices = item["Цена"].split(/\s*\/\s*/); const volumes = item["Объем"].split(/\s*\/\s*/); const unit = item["Объем"].match(/(мл|г|л)\s*$/i)?.[0] || ""; 
+    if(prices.length>1 && prices.length===volumes.length){const variants=node("div","price-variants"); prices.forEach((p,i)=>{const v=node("div","price-variant");addText(v,"span","volume",volumes[i]+(/\d$/.test(volumes[i])&&unit?" "+unit:""));addText(v,"strong","price",rubles(p));variants.append(v);});heading.append(variants);}else addText(heading,"p","price",rubles(item["Цена"]));
     body.append(heading);
     addText(body, "p", "muted", item["Описание"]);
-    addText(body, "p", "volume", item["Объем"]);
+    if(prices.length===1 || prices.length!==volumes.length) addText(body, "p", "volume", item["Объем"]);
     if (item.tags.length) {
       const tags = node("ul", "item-tags");
       tags.append(...item.tags.map((tag) => node("li", "", tag)));
@@ -349,7 +350,7 @@ function renderIntro() {
   }
   for (const photo of images.values()) {
     addImage(gallery, photo, "Интерьер кофейни", {
-      onError: updateGalleryLayout
+      onError: () => { updateGalleryLayout(); setupGallery(gallery); }
     });
   }
   updateGalleryLayout();
@@ -452,7 +453,7 @@ function updateStatus() {
 function renderHours() {
   const weekdays = setting("Режим Пн-Пт");
   const weekends = setting("Режим Сб-Вс");
-  const extra = records("exceptions",rows.exceptions).map(x=>{const date=x["Дата исключения (ГГГГ-ММ-ДД)"]; if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return ""; return isYes(x["Закрыто весь день"])?date+" закрыто":date+" "+x["Открытие (ЧЧ:ММ)"]+"-"+x["Закрытие (ЧЧ:ММ)"];}).filter(Boolean).join("; ");
+  const extra = records("exceptions",rows.exceptions).map(x=>{let date=x["Дата исключения (ГГГГ-ММ-ДД)"]; const dm=date.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/); if(dm)date=dm[3]+"-"+dm[2].padStart(2,"0")+"-"+dm[1].padStart(2,"0"); if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return ""; return isYes(x["Закрыто весь день"])?date+" закрыто":date+" "+x["Открытие (ЧЧ:ММ)"]+"-"+x["Закрытие (ЧЧ:ММ)"];}).filter(Boolean).join("; ");
   const special = [extra,setting("Особый режим")].filter(Boolean).join("; ");
   schedule = { weekday: parseHours(weekdays), weekend: parseHours(weekends), special };
   $("hours").replaceChildren(...[["Пн–Пт", weekdays], ["Сб–Вс", weekends]].flatMap(([label, value]) => {
@@ -570,10 +571,11 @@ function renderSettings() {
 let galleryTimer;
 function setupGallery(gallery) {
  clearInterval(galleryTimer);
+ gallery.querySelector(".gallery-controls")?.remove();
  let index=0, paused=false;
  const photos=()=>[...gallery.querySelectorAll("img")];
  const controls=node("div","gallery-controls");
- const show=(delta=0)=>{const list=photos(); if(!list.length)return; index=(index+delta+list.length)%list.length; list.forEach((img,i)=>img.hidden=i!==index); const quote=gallery.querySelector(".quote-card"); if(quote)quote.hidden=true;};
+ const show=(delta=0)=>{const list=photos(); if(!list.length){const quote=gallery.querySelector(".quote-card");if(quote)quote.hidden=false;controls.hidden=true;return;} index=((index+delta)%list.length+list.length)%list.length; list.forEach((img,i)=>img.hidden=i!==index); const quote=gallery.querySelector(".quote-card"); if(quote)quote.hidden=true;};
  if(photos().length){show(); if(photos().length>1){for(const [label,delta] of [["‹",-1],["›",1]]){const b=node("button","",label);b.type="button";b.setAttribute("aria-label",delta<0?"Предыдущее фото":"Следующее фото");b.onclick=()=>{paused=true;show(delta);};controls.append(b);}const pause=node("button","","Пауза");pause.type="button";pause.onclick=()=>{paused=!paused;pause.textContent=paused?"Продолжить":"Пауза";};controls.append(pause);gallery.append(controls);if(!matchMedia("(prefers-reduced-motion: reduce)").matches)galleryTimer=setInterval(()=>{if(!paused&&!document.hidden)show(1);},6000);}}
 }
 function applySections(){
