@@ -592,14 +592,116 @@ function renderSettings() {
 }
 
 var galleryTimer;
+let galleryDialog;
+function closeGalleryDialog() {
+  if (!galleryDialog) return;
+  galleryDialog.remove();
+  galleryDialog = null;
+  document.body.classList.remove("gallery-open");
+}
+function openGalleryDialog(images, startIndex) {
+  closeGalleryDialog();
+  const dialog = node("div", "gallery-lightbox");
+  dialog.setAttribute("role", "dialog");
+  dialog.setAttribute("aria-modal", "true");
+  dialog.setAttribute("aria-label", "Фотографии кофейни");
+  const panel = node("div", "gallery-lightbox-panel");
+  const close = node("button", "gallery-close");
+  close.type = "button";
+  close.setAttribute("aria-label", "Закрыть фотографии");
+  close.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  const image = node("img", "gallery-lightbox-image");
+  image.alt = "Интерьер кофейни";
+  const controls = node("div", "gallery-lightbox-controls");
+  const previous = node("button", "gallery-arrow gallery-arrow-prev");
+  const next = node("button", "gallery-arrow gallery-arrow-next");
+  previous.type = next.type = "button";
+  previous.setAttribute("aria-label", "Предыдущее фото");
+  next.setAttribute("aria-label", "Следующее фото");
+  previous.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>';
+  next.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
+  controls.append(previous, next);
+  panel.append(close, image, controls);
+  dialog.append(panel);
+  document.body.append(dialog);
+  document.body.classList.add("gallery-open");
+  galleryDialog = dialog;
+  let index = startIndex;
+  const show = (delta=0) => {
+    index = (index + delta + images.length) % images.length;
+    image.src = images[index].currentSrc || images[index].src;
+  };
+  previous.addEventListener("click", () => show(-1));
+  next.addEventListener("click", () => show(1));
+  close.addEventListener("click", closeGalleryDialog);
+  dialog.addEventListener("click", event => { if (event.target === dialog) closeGalleryDialog(); });
+  dialog.addEventListener("keydown", event => {
+    if (event.key === "Escape") closeGalleryDialog();
+    if (event.key === "ArrowLeft") show(-1);
+    if (event.key === "ArrowRight") show(1);
+  });
+  show();
+  close.focus();
+}
 function setupGallery(gallery) {
- clearInterval(galleryTimer);
- gallery.querySelector(".gallery-controls")?.remove();
- let index=0, paused=false;
- const photos=()=>[...gallery.querySelectorAll("img")];
- const controls=node("div","gallery-controls");
- const show=(delta=0)=>{const list=photos(); if(!list.length){const quote=gallery.querySelector(".quote-card");if(quote)quote.hidden=false;controls.hidden=true;return;} index=((index+delta)%list.length+list.length)%list.length; list.forEach((img,i)=>img.hidden=i!==index); const quote=gallery.querySelector(".quote-card"); if(quote)quote.hidden=true;};
- if(photos().length){show(); if(photos().length>1){for(const [label,delta] of [["‹",-1],["›",1]]){const b=node("button","",label);b.type="button";b.setAttribute("aria-label",delta<0?"Предыдущее фото":"Следующее фото");b.onclick=()=>{paused=true;show(delta);};controls.append(b);}const pause=node("button","","Пауза");pause.type="button";pause.onclick=()=>{paused=!paused;pause.textContent=paused?"Продолжить":"Пауза";};controls.append(pause);gallery.append(controls);if(!matchMedia("(prefers-reduced-motion: reduce)").matches)galleryTimer=setInterval(()=>{if(!paused&&!document.hidden)show(1);},6000);}}
+  clearInterval(galleryTimer);
+  gallery.querySelector(".gallery-controls")?.remove();
+  const photos = () => [...gallery.querySelectorAll("img")];
+  let index = 0;
+  let paused = false;
+  const controls = node("div", "gallery-controls");
+  const makeArrow = (direction, delta) => {
+    const button = node("button", "gallery-arrow");
+    button.type = "button";
+    button.setAttribute("aria-label", direction === "prev" ? "Предыдущее фото" : "Следующее фото");
+    button.innerHTML = direction === "prev"
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
+    button.addEventListener("click", () => { paused = true; show(delta); });
+    return button;
+  };
+  const show = (delta=0) => {
+    const list = photos();
+    if (!list.length) {
+      const quote = gallery.querySelector(".quote-card");
+      if (quote) quote.hidden = false;
+      controls.hidden = true;
+      return;
+    }
+    index = (index + delta + list.length) % list.length;
+    list.forEach((img, i) => {
+      img.hidden = i !== index;
+      img.setAttribute("aria-hidden", String(i !== index));
+    });
+    const quote = gallery.querySelector(".quote-card");
+    if (quote) quote.hidden = true;
+  };
+  const list = photos();
+  if (!list.length) return;
+  list.forEach((img, i) => {
+    img.tabIndex = 0;
+    img.setAttribute("role", "button");
+    img.setAttribute("aria-label", "Открыть фотографию на весь экран");
+    img.addEventListener("click", () => openGalleryDialog(photos(), i));
+    img.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openGalleryDialog(photos(), i);
+      }
+    });
+  });
+  show();
+  if (list.length > 1) {
+    controls.append(makeArrow("prev", -1), makeArrow("next", 1));
+    gallery.append(controls);
+    gallery.addEventListener("mouseenter", () => { paused = true; });
+    gallery.addEventListener("mouseleave", () => { paused = false; });
+    gallery.addEventListener("focusin", () => { paused = true; });
+    gallery.addEventListener("focusout", event => { if (!gallery.contains(event.relatedTarget)) paused = false; });
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      galleryTimer = setInterval(() => { if (!paused && !document.hidden) show(1); }, 6500);
+    }
+  }
 }
 function applySections(){
  const ids={"акции":"announcements","витрина":"showcase","меню":"menu","о нас":"about","контакты":"contacts"};
