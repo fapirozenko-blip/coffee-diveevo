@@ -283,6 +283,19 @@ function addImage(parent, url, alt, options = {}) {
       close.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
       close.addEventListener("click", () => dialog.close());
 
+      let index = Math.max(0, photos.indexOf(image));
+      const show = (delta = 0) => {
+        index = (index + delta + photos.length) % photos.length;
+        const selected = photos[index];
+        full.src = selected.currentSrc || selected.src;
+        full.alt = selected.alt || "Фотография кофейни";
+        dots.querySelectorAll("button").forEach((dot, i) => {
+          dot.setAttribute("aria-current", String(i === index));
+        });
+        previous.hidden = next.hidden = photos.length < 2;
+        dots.hidden = photos.length < 2;
+      };
+
       const controls = document.createElement("div");
       controls.className = "gallery-photo-controls";
       const makeArrow = (direction, delta) => {
@@ -302,29 +315,19 @@ function addImage(parent, url, alt, options = {}) {
 
       const dots = document.createElement("div");
       dots.className = "gallery-photo-dots";
-      let index = Math.max(0, photos.indexOf(image));
-      const show = (delta = 0) => {
-        index = (index + delta + photos.length) % photos.length;
-        const selected = photos[index];
-        full.src = selected.currentSrc || selected.src;
-        full.alt = selected.alt || "Фотография кофейни";
-        dots.querySelectorAll("button").forEach((dot, i) => {
-          dot.setAttribute("aria-current", String(i === index));
-        });
-        previous.hidden = next.hidden = photos.length < 2;
-        dots.hidden = photos.length < 2;
-      };
       photos.forEach((photo, i) => {
         const dot = document.createElement("button");
         dot.type = "button";
         dot.className = "gallery-photo-dot";
         dot.setAttribute("aria-label", `Фото ${i + 1} из ${photos.length}`);
-        dot.addEventListener("click", () => { index = i - 1; show(1); });
+        dot.addEventListener("click", () => show(i - index));
         dots.append(dot);
       });
 
       let touchStartX = 0;
-      dialog.addEventListener("touchstart", event => { touchStartX = event.changedTouches[0].clientX; }, {passive:true});
+      dialog.addEventListener("touchstart", event => {
+        touchStartX = event.changedTouches[0].clientX;
+      }, {passive:true});
       dialog.addEventListener("touchend", event => {
         const delta = event.changedTouches[0].clientX - touchStartX;
         if (Math.abs(delta) > 45 && photos.length > 1) show(delta < 0 ? 1 : -1);
@@ -332,8 +335,11 @@ function addImage(parent, url, alt, options = {}) {
       dialog.addEventListener("keydown", event => {
         if (event.key === "ArrowLeft") show(-1);
         if (event.key === "ArrowRight") show(1);
+        if (event.key === "Escape") dialog.close();
       });
-      dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
+      dialog.addEventListener("click", event => {
+        if (event.target === dialog) dialog.close();
+      });
       dialog.addEventListener("close", () => {
         dialog.remove();
         if (image.isConnected) image.focus({preventScroll:true});
@@ -756,6 +762,7 @@ var galleryTimer;
 function setupGallery(gallery) {
   clearInterval(galleryTimer);
   gallery.querySelector(".gallery-controls")?.remove();
+  gallery.querySelector(".gallery-dots")?.remove();
   let index = 0;
   let paused = false;
   const photos = () => [...gallery.querySelectorAll("img")];
@@ -817,7 +824,7 @@ function setupGallery(gallery) {
     if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
       galleryTimer = setInterval(() => {
         if (!paused && !document.hidden && !document.querySelector(".gallery-photo-dialog")) show(1);
-      }, 6500);
+      }, 3250);
     }
   }
   show();
