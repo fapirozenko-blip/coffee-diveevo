@@ -5,8 +5,8 @@ const spreadsheetId = spreadsheetUrl.match(/\/d\/([^/]+)/)[1];
 const cacheKey = `coffee-diveevo:${spreadsheetId}:v1`;
 const sheets = {
   menu: { name: "Меню", columns: ["Категория", "Название", "Описание", "Объем", "Цена", "Теги", "Фото", "Наличие"] },
-  showcase: { name: "Витрина", columns: ["Тип", "Название", "Описание", "Цена", "Активно"] },
-  promos: { name: "Акции", columns: ["Заголовок", "Текст", "Активно"] },
+  showcase: { name: "Витрина", columns: ["Тип", "Название", "Описание", "Цена", "Активно", "Фото"] },
+  promos: { name: "Акции", columns: ["Заголовок", "Текст", "Активно", "Фото"] },
   settings: { name: "Настройки", columns: ["Параметр", "Значение"] }
 };
 
@@ -45,7 +45,8 @@ const key = (value) => clean(value).toLowerCase().replace(/ё/g, "е").replace(/
 const splitList = (value) => clean(value).split(/[,;|\n]+/).map(clean).filter(Boolean);
 const isYes = (value) => ["да", "true", "1"].includes(key(value));
 const isNo = (value) => ["нет", "false", "0"].includes(key(value));
-const filters = ["Все", "Постное", "Хит", "Без сахара"];
+let filters = ["Все"]; 
+let searchText = "";
 
 function node(tag, className, content) {
   const element = document.createElement(tag);
@@ -202,12 +203,14 @@ function renderPromos() {
   const announcements = $("announcements");
   const active = records("promos", rows.promos).filter((promo) => isYes(promo["Активно"]) && (promo["Заголовок"] || promo["Текст"]));
   announcements.replaceChildren(...active.map((promo) => {
-    const line = node("p", "shell");
+    const line = node("article", "promo-card");
+    const photo = httpUrl(promo["Фото"]); if (photo) addImage(line, photo, promo["Заголовок"]);
     addText(line, "strong", "", promo["Заголовок"]);
     if (promo["Текст"]) line.append(promo["Заголовок"] ? ` · ${promo["Текст"]}` : promo["Текст"]);
     return line;
   }));
   announcements.hidden = !active.length;
+  const hero = $("hero-visual")?.closest("section"); if (hero && !hero.contains(announcements)) hero.after(announcements);
 }
 
 function renderShowcase() {
@@ -216,6 +219,7 @@ function renderShowcase() {
   $("showcase-note").hidden = !demo.showcase;
   $("showcase-grid").replaceChildren(...active.map((item) => {
     const card = node("article", "showcase-card");
+    const photo = httpUrl(item["Фото"]); if (photo) addImage(card, photo, item["Название"]);
     addText(card, "p", "eyebrow", item["Тип"]);
     addText(card, "h3", "", item["Название"]);
     addText(card, "p", "muted", item["Описание"]);
@@ -247,10 +251,10 @@ function renderButtons(container, options, selected, onSelect) {
 function renderMenu() {
   const items = records("menu", rows.menu);
   menu = items
-    .filter((item) => item["Название"] && !isNo(item["Наличие"]))
+    .filter((item) => item["Название"] && isYes(item["Наличие"]))
     .map((item) => ({ ...item, tags: splitList(item["Теги"]), categoryKey: key(item["Категория"]) }));
   const categories = new Map();
-  for (const item of items) {
+  for (const item of menu) {
     const category = key(item["Категория"]);
     if (category && !categories.has(category)) categories.set(category, item["Категория"]);
   }
@@ -258,13 +262,18 @@ function renderMenu() {
   $("menu-note").hidden = !demo.menu;
   renderButtons($("categories"), [{ value: "", label: "Все категории" }, ...Array.from(categories, ([value, label]) => ({ value, label }))],
     selectedCategory, (value) => { selectedCategory = value; });
+  filters = ["Все", ...new Set(menu.flatMap(item => item.tags).filter(tag => key(tag) !== "все"))];
+  if (!filters.includes(selectedTag)) selectedTag = "Все";
+  if (!$("menu-search")) {
+    const search = node("input", "menu-search"); search.id = "menu-search"; search.type = "search"; search.placeholder = "Найти блюдо или напиток"; search.setAttribute("aria-label", "Поиск по меню"); search.addEventListener("input", () => { searchText = key(search.value); renderMenuItems(); }); $("categories").before(search);
+  }
   renderButtons($("filters"), filters.map((label) => ({ label, value: label })),
     selectedTag, (value) => { selectedTag = value; });
   renderMenuItems();
 }
 
 function renderMenuItems() {
-  const visible = menu.filter((item) => (!selectedCategory || item.categoryKey === selectedCategory)
+  const visible = menu.filter((item) => (!searchText || key([item["Название"], item["Описание"], item["Категория"], ...item.tags].join(" ")).includes(searchText)) && (!selectedCategory || item.categoryKey === selectedCategory)
     && (selectedTag === filters[0] || item.tags.some((tag) => key(tag) === key(selectedTag))));
   $("menu-grid").replaceChildren(...visible.map((item) => {
     const card = node("article", "menu-card");
