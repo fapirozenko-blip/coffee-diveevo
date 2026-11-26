@@ -803,17 +803,17 @@ function setupGallery(gallery) {
       dots.append(dot);
     });
     gallery.append(controls, dots);
-    gallery.addEventListener("mouseenter", () => { paused = true; });
-    gallery.addEventListener("mouseleave", () => { paused = false; });
-    gallery.addEventListener("focusin", () => { paused = true; });
-    gallery.addEventListener("focusout", event => { if (!gallery.contains(event.relatedTarget)) paused = false; });
+    gallery.onmouseenter = () => { paused = true; };
+    gallery.onmouseleave = () => { paused = false; };
+    gallery.onfocusin = () => { paused = true; };
+    gallery.onfocusout = event => { if (!gallery.contains(event.relatedTarget)) paused = false; };
     let touchStartX = 0;
-    gallery.addEventListener("touchstart", event => { touchStartX = event.changedTouches[0].clientX; paused = true; }, {passive:true});
-    gallery.addEventListener("touchend", event => {
+    gallery.ontouchstart = event => { touchStartX = event.changedTouches[0].clientX; paused = true; };
+    gallery.ontouchend = event => {
       const delta = event.changedTouches[0].clientX - touchStartX;
       if (Math.abs(delta) > 45) show(delta < 0 ? 1 : -1);
       paused = false;
-    }, {passive:true});
+    };
     if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
       galleryTimer = setInterval(() => {
         if (!paused && !document.hidden && !document.querySelector(".gallery-photo-dialog")) show(1);
