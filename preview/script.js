@@ -258,44 +258,103 @@ function addImage(parent, url, alt, options = {}) {
   }, { once: true });
   image.src = url.href;
   parent.append(image);
+
   if (parent.id === "gallery") {
     image.tabIndex = 0;
     image.setAttribute("role", "button");
-    image.setAttribute("aria-label", "Увеличить фотографию");
-    image.style.cursor = "zoom-in";
+    image.setAttribute("aria-label", "Открыть фотографию на весь экран");
+
     const open = () => {
       if (document.querySelector(".gallery-photo-dialog")) return;
+      const photos = [...parent.querySelectorAll("img")];
       const dialog = document.createElement("dialog");
       dialog.className = "gallery-photo-dialog";
-      dialog.setAttribute("aria-label", "Фотография кофейни");
+      dialog.setAttribute("aria-label", "Фотографии кофейни");
       const panel = document.createElement("div");
       panel.className = "gallery-photo-dialog-panel";
       const full = document.createElement("img");
       full.className = "gallery-photo-full";
-      full.src = image.currentSrc || image.src;
-      full.alt = image.alt;
+      full.alt = alt || "Фотография кофейни";
+
       const close = document.createElement("button");
       close.type = "button";
       close.className = "gallery-photo-close";
-      close.setAttribute("aria-label", "Закрыть фотографию");
+      close.setAttribute("aria-label", "Закрыть просмотр");
       close.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
       close.addEventListener("click", () => dialog.close());
+
+      const controls = document.createElement("div");
+      controls.className = "gallery-photo-controls";
+      const makeArrow = (direction, delta) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "gallery-arrow";
+        button.setAttribute("aria-label", direction === "prev" ? "Предыдущее фото" : "Следующее фото");
+        button.innerHTML = direction === "prev"
+          ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>'
+          : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
+        button.addEventListener("click", () => show(delta));
+        return button;
+      };
+      const previous = makeArrow("prev", -1);
+      const next = makeArrow("next", 1);
+      controls.append(previous, next);
+
+      const dots = document.createElement("div");
+      dots.className = "gallery-photo-dots";
+      let index = Math.max(0, photos.indexOf(image));
+      const show = (delta = 0) => {
+        index = (index + delta + photos.length) % photos.length;
+        const selected = photos[index];
+        full.src = selected.currentSrc || selected.src;
+        full.alt = selected.alt || "Фотография кофейни";
+        dots.querySelectorAll("button").forEach((dot, i) => {
+          dot.setAttribute("aria-current", String(i === index));
+        });
+        previous.hidden = next.hidden = photos.length < 2;
+        dots.hidden = photos.length < 2;
+      };
+      photos.forEach((photo, i) => {
+        const dot = document.createElement("button");
+        dot.type = "button";
+        dot.className = "gallery-photo-dot";
+        dot.setAttribute("aria-label", `Фото ${i + 1} из ${photos.length}`);
+        dot.addEventListener("click", () => { index = i - 1; show(1); });
+        dots.append(dot);
+      });
+
+      let touchStartX = 0;
+      dialog.addEventListener("touchstart", event => { touchStartX = event.changedTouches[0].clientX; }, {passive:true});
+      dialog.addEventListener("touchend", event => {
+        const delta = event.changedTouches[0].clientX - touchStartX;
+        if (Math.abs(delta) > 45 && photos.length > 1) show(delta < 0 ? 1 : -1);
+      }, {passive:true});
+      dialog.addEventListener("keydown", event => {
+        if (event.key === "ArrowLeft") show(-1);
+        if (event.key === "ArrowRight") show(1);
+      });
       dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
       dialog.addEventListener("close", () => {
         dialog.remove();
         if (image.isConnected) image.focus({preventScroll:true});
       }, {once:true});
-      panel.append(full, close);
+
+      panel.append(full, controls, dots, close);
       dialog.append(panel);
       document.body.append(dialog);
       dialog.showModal();
+      show();
       close.focus();
     };
     image.addEventListener("click", open);
-    image.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+    image.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        open();
+      }
+    });
   }
 }
-
 function renderPromos() {
   const announcements = $("announcements");
   const active = records("promos", rows.promos).filter((promo) => isYes(promo["Активно"]) && (promo["Заголовок"] || promo["Текст"]));
@@ -695,36 +754,73 @@ function renderSettings() {
 
 var galleryTimer;
 function setupGallery(gallery) {
- clearInterval(galleryTimer);
- gallery.querySelector(".gallery-controls")?.remove();
- let index=0, paused=false;
- const photos=()=>[...gallery.querySelectorAll("img")];
- const controls=node("div","gallery-controls");
- const arrow=(direction,delta)=>{
-   const b=node("button","gallery-arrow");
-   b.type="button";
-   b.setAttribute("aria-label",direction==="prev"?"Предыдущее фото":"Следующее фото");
-   b.innerHTML=direction==="prev"
-     ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>'
-     : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
-   b.addEventListener("click",()=>{paused=true;show(delta);});
-   return b;
- };
- const show=(delta=0)=>{const list=photos(); if(!list.length){const quote=gallery.querySelector(".quote-card");if(quote)quote.hidden=false;controls.hidden=true;return;} index=((index+delta)%list.length+list.length)%list.length; list.forEach((img,i)=>{img.hidden=i!==index;img.setAttribute("aria-hidden",String(i!==index));}); const quote=gallery.querySelector(".quote-card"); if(quote)quote.hidden=true;};
- if(photos().length){
-   show();
-   if(photos().length>1){
-     controls.append(arrow("prev",-1),arrow("next",1));
-     gallery.append(controls);
-     gallery.addEventListener("mouseenter",()=>{paused=true;});
-     gallery.addEventListener("mouseleave",()=>{paused=false;});
-     gallery.addEventListener("focusin",()=>{paused=true;});
-     gallery.addEventListener("focusout",event=>{if(!gallery.contains(event.relatedTarget))paused=false;});
-     gallery.addEventListener("touchstart",()=>{paused=true;},{passive:true});
-     gallery.addEventListener("touchend",()=>{paused=false;},{passive:true});
-     if(!matchMedia("(prefers-reduced-motion: reduce)").matches)galleryTimer=setInterval(()=>{if(!paused&&!document.hidden)show(1);},6500);
-   }
- }
+  clearInterval(galleryTimer);
+  gallery.querySelector(".gallery-controls")?.remove();
+  let index = 0;
+  let paused = false;
+  const photos = () => [...gallery.querySelectorAll("img")];
+  const controls = node("div", "gallery-controls");
+  const makeArrow = (direction, delta) => {
+    const button = node("button", "gallery-arrow");
+    button.type = "button";
+    button.setAttribute("aria-label", direction === "prev" ? "Предыдущее фото" : "Следующее фото");
+    button.innerHTML = direction === "prev"
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
+    button.addEventListener("click", () => { paused = true; show(delta); });
+    return button;
+  };
+  const dots = node("div", "gallery-dots");
+  const show = (delta = 0) => {
+    const list = photos();
+    if (!list.length) {
+      const quote = gallery.querySelector(".quote-card");
+      if (quote) quote.hidden = false;
+      controls.hidden = true;
+      return;
+    }
+    index = (index + delta + list.length) % list.length;
+    list.forEach((img, i) => {
+      img.hidden = i !== index;
+      img.setAttribute("aria-hidden", String(i !== index));
+    });
+    dots.querySelectorAll("button").forEach((dot, i) => dot.setAttribute("aria-current", String(i === index)));
+    const quote = gallery.querySelector(".quote-card");
+    if (quote) quote.hidden = true;
+  };
+  const list = photos();
+  if (!list.length) return;
+  list.forEach((img, i) => {
+    img.addEventListener("click", () => { index = i; });
+  });
+  if (list.length > 1) {
+    controls.append(makeArrow("prev", -1), makeArrow("next", 1));
+    list.forEach((_, i) => {
+      const dot = node("button", "gallery-dot");
+      dot.type = "button";
+      dot.setAttribute("aria-label", `Фото ${i + 1} из ${list.length}`);
+      dot.addEventListener("click", () => { paused = true; show(i - index); });
+      dots.append(dot);
+    });
+    gallery.append(controls, dots);
+    gallery.addEventListener("mouseenter", () => { paused = true; });
+    gallery.addEventListener("mouseleave", () => { paused = false; });
+    gallery.addEventListener("focusin", () => { paused = true; });
+    gallery.addEventListener("focusout", event => { if (!gallery.contains(event.relatedTarget)) paused = false; });
+    let touchStartX = 0;
+    gallery.addEventListener("touchstart", event => { touchStartX = event.changedTouches[0].clientX; paused = true; }, {passive:true});
+    gallery.addEventListener("touchend", event => {
+      const delta = event.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(delta) > 45) show(delta < 0 ? 1 : -1);
+      paused = false;
+    }, {passive:true});
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      galleryTimer = setInterval(() => {
+        if (!paused && !document.hidden && !document.querySelector(".gallery-photo-dialog")) show(1);
+      }, 6500);
+    }
+  }
+  show();
 }
 function applySections(){
  const ids={"акции":"announcements","витрина":"showcase","меню":"menu","о нас":"about","контакты":"contacts"};
