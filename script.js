@@ -282,6 +282,7 @@ function renderTagFilters() {
  renderButtons($("filters"),filters.map(label=>({label,value:label})),selectedTag,value=>{selectedTag=value;});
 }
 function renderMenuItems() {
+  if ($("menu-scroll")) $("menu-scroll").scrollTop = 0;
   const visible = menu.filter((item) => (!searchText || key([item["Название"], item["Описание"], item["Категория"], ...item.tags].join(" ")).includes(searchText)) && (!selectedCategory || item.categoryKey === selectedCategory)
     && (selectedTag === filters[0] || item.tags.some((tag) => key(tag) === key(selectedTag))));
   $("menu-grid").replaceChildren(...visible.map((item) => {
@@ -306,6 +307,8 @@ function renderMenuItems() {
   }));
   const emptyText = menu.length ? "По этим фильтрам ничего не найдено." : "Меню обновляется.";
   $("empty-menu").hidden = visible.length > 0;
+  if ($("menu-scroll")) $("menu-scroll").hidden = !visible.length;
+  if ($("menu-scroll-hint")) requestAnimationFrame(()=>{const el=$("menu-scroll"); $("menu-scroll-hint").hidden=!el || el.hidden || el.scrollHeight<=el.clientHeight+2;});
   $("empty-menu").textContent = emptyText;
   $("menu-count").textContent = visible.length ? `Позиций в меню: ${visible.length}` : emptyText;
 }
@@ -623,3 +626,5 @@ for (const [kind, render] of Object.entries(renderers)) {
     console.warn(`Лист «${sheets[kind].name}» не обновился:`, error.message);
   });
 }
+
+$("menu-next")?.addEventListener("click",()=>{let next=$("menu").nextElementSibling;while(next&&next.hidden)next=next.nextElementSibling;(next||document.querySelector("footer"))?.scrollIntoView({block:"start",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth"});});
