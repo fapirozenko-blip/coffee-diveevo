@@ -492,20 +492,20 @@ function renderContacts() {
   $("address").textContent = address || defaultSettings["адрес"];
   $("landmark").textContent = landmark;
   $("landmark").hidden = !landmark;
-  const phone = setting("Телефон");
+  const phone = setting("Телефон").replace(/^\+7\s*\(900\)\s*000-00-00$/, "");
   const digits = phone.replace(/\D/g, "");
   $("phone-block").hidden = !digits;
   $("phone").textContent = phone;
   if (digits) $("phone").href = `tel:${phone.startsWith("+") ? "+" : ""}${digits}`;
   else $("phone").removeAttribute("href");
 
-  const telegram = httpUrl(setting("Telegram", "Ссылка Telegram", "Ссылка на Telegram", "Телеграм"));
-  const vk = httpUrl(setting("VK", "Ссылка VK", "Ссылка на VK", "ВКонтакте"));
+  const telegramCandidate = httpUrl(setting("Telegram", "Ссылка Telegram", "Ссылка на Telegram", "Телеграм")); const telegram = telegramCandidate && telegramCandidate.pathname !== "/" ? telegramCandidate : null;
+  const vkCandidate = httpUrl(setting("VK", "Ссылка VK", "Ссылка на VK", "ВКонтакте")); const vk = vkCandidate && vkCandidate.pathname !== "/" ? vkCandidate : null;
   link("telegram", telegram);
   link("vk", vk);
   $("social").hidden = !telegram && !vk;
 
-  let route = httpUrl(setting("Маршрут в Яндекс Картах", "Ссылка на Яндекс Карты", "Яндекс Карты", "Яндекс маршрут", "Ссылка на маршрут", "Маршрут Яндекс", "Ссылка Яндекс", "Ссылка на Яндекс Маршрут"));
+  let route = httpUrl(setting("Маршрут в Яндекс Картах", "Ссылка на Яндекс Карты", "Ссылка Яндекс Карты", "Яндекс Карты", "Яндекс маршрут", "Ссылка на маршрут", "Маршрут Яндекс", "Ссылка Яндекс", "Ссылка на Яндекс Маршрут"));
   const destination = route?.searchParams.get("rtext")?.split("~").filter(Boolean).at(-1);
   const point = coordinates(destination) || coordinates(setting("Координаты", "Координаты кофейни"))
     || coordinates([setting("Широта"), setting("Долгота")].join(";"));
@@ -568,7 +568,7 @@ function renderSettings() {
   renderContacts();
 }
 
-let galleryTimer;
+var galleryTimer;
 function setupGallery(gallery) {
  clearInterval(galleryTimer);
  gallery.querySelector(".gallery-controls")?.remove();
