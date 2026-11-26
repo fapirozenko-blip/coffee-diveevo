@@ -496,12 +496,49 @@ function renderIntro() {
     list.replaceChildren(...amenities.map((text) => node("li", "", text)));
   });
 
+  // Hero slideshow reuses the exact public photos shown in the About gallery.
   const hero = $("hero-visual");
-  const art = $("hero-art");
-  const photo = httpUrl(setting("Фото главного экрана"));
-  hero.replaceChildren(art);
-  art.hidden = Boolean(photo);
-  if (photo) addImage(hero, photo, "", { eager: true, onError: () => { art.hidden = false; } });
+  if (window.heroSlideshowTimer) window.clearInterval(window.heroSlideshowTimer);
+  const galleryPhotos = [];
+  if (!demo.gallery) {
+    for (const item of records("gallery", rows.gallery)
+      .filter(x => isYes(x["Активно"]))
+      .sort((a,b) => Number(a["Порядок"]) - Number(b["Порядок"]))) {
+      const url = httpUrl(item["Фото"]);
+      if (url && !galleryPhotos.some(photo => photo.url.href === url.href)) {
+        galleryPhotos.push({url, caption:item["Подпись"] || "Интерьер кофейни"});
+      }
+    }
+  }
+  if (!galleryPhotos.length) {
+    const fallback = httpUrl(setting("Фото главного экрана"));
+    if (fallback) galleryPhotos.push({url:fallback,caption:""});
+  }
+  hero.replaceChildren();
+  hero.classList.add("hero-slideshow");
+  galleryPhotos.forEach(({url,caption}, index) => {
+    const image = node("img", "hero-slide" + (index === 0 ? " is-active" : ""));
+    image.src = url.href;
+    image.alt = "";
+    image.loading = index === 0 ? "eager" : "lazy";
+    image.decoding = "async";
+    image.draggable = false;
+    image.setAttribute("aria-hidden","true");
+    image.addEventListener("error", () => image.remove(), {once:true});
+    hero.append(image);
+  });
+  let activeSlide = 0;
+  const slides = () => [...hero.querySelectorAll(".hero-slide")];
+  if (slides().length > 1 && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    window.heroSlideshowTimer = window.setInterval(() => {
+      if (document.hidden) return;
+      const current = slides();
+      if (current.length < 2) return;
+      current[activeSlide % current.length].classList.remove("is-active");
+      activeSlide = (activeSlide + 1) % current.length;
+      current[activeSlide].classList.add("is-active");
+    }, 3250);
+  }
 
   const gallery = $("gallery");
   const images = new Map();
