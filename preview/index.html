@@ -10,17 +10,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Prata&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="./style.css?v=mobile-two-column-menu-20261126-1">
-  <script src="./script.js?v=mobile-two-column-menu-20261126-1" defer></script>
+  <link rel="stylesheet" href="./style.css?v=preview-category-scroll-20261128-1">
+  <link rel="icon" type="image/svg+xml" href="./images/coffee-cup.svg">
+  <script src="./script.js?v=preview-category-scroll-20261128-1" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">К содержанию</a>
-  <aside class="announcements" id="announcements" aria-label="Объявления" hidden></aside>
-  <header class="header">
+  <header class="header" id="page-start" tabindex="-1">
     <div class="shell header-inner">
       <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true">✳</span><span data-name>Кофейня в Дивееве</span></a>
       <nav aria-label="Навигация">
-        <a href="#menu">Меню</a><a href="#about">О нас</a>
+        <a href="#menu">Меню</a><a href="#about">О нас</a><a href="#contacts">Часы работы</a>
         <a href="#contacts">Контакты</a><a href="#directions">Как добраться</a>
       </nav>
       <p class="status" id="status"><span class="status-dot" aria-hidden="true"></span><span id="status-text">Уточняем часы работы</span></p>
@@ -28,7 +28,7 @@
   </header>
 
   <main id="main">
-<p style="text-align:center;padding:8px;background:#eee4f1">Тестовая версия 2.0 · <a href="../">Действующий сайт</a></p>
+    <p class="preview-banner" id="preview-banner">Тестовая версия 2.0 · <a href="../">Действующий сайт</a></p>
     <section class="hero" id="top" aria-labelledby="hero-title">
       <div class="shell hero-inner">
         <div class="hero-copy">
@@ -49,22 +49,36 @@
       </div>
     </section>
 
+    <aside class="announcements" id="announcements" aria-label="Объявления" hidden></aside>
+
     <section class="section shell" id="showcase" aria-labelledby="showcase-title">
       <div class="section-heading">
         <div><p class="eyebrow">Сегодня в кофейне</p><h2 id="showcase-title">Витрина и блюдо дня</h2></div>
-        <p class="data-note" id="showcase-note" hidden>Пример витрины</p>
+        <div class="showcase-tools">
+          <p class="data-note" id="showcase-note" hidden>Пример витрины</p>
+          <div class="showcase-controls" id="showcase-controls" hidden>
+            <button class="button button-outline" type="button" id="showcase-prev" aria-label="Пролистать витрину влево" aria-controls="showcase-grid"><span aria-hidden="true">←</span></button>
+            <button class="button button-outline" type="button" id="showcase-next" aria-label="Пролистать витрину вправо" aria-controls="showcase-grid"><span aria-hidden="true">→</span></button>
+          </div>
+        </div>
       </div>
-      <div class="showcase-grid" id="showcase-grid"></div>
+      <div class="showcase-grid" id="showcase-grid" role="group" aria-label="Карточки витрины"></div>
     </section>
 
     <section class="menu-section section" id="menu" aria-labelledby="menu-title">
       <div class="shell section-heading">
-        <div><p class="eyebrow">Кофе и еда</p><h2 id="menu-title">Меню</h2></div>
+        <div><p class="eyebrow">Кофе и еда</p><h2 id="menu-title" tabindex="-1">Меню</h2></div>
         <p class="data-note" id="menu-note" hidden>Пример меню</p>
       </div>
       <div class="menu-controls">
         <div class="shell">
-          <div class="category-bar" id="categories" role="group" aria-label="Категории меню"></div>
+          <div class="category-row" id="category-row">
+            <div class="category-bar" id="categories" role="group" aria-label="Категории меню"></div>
+            <div class="category-arrows" id="category-arrows" hidden>
+              <button type="button" class="button button-outline" id="category-prev" aria-label="Пролистать категории влево" aria-controls="categories"><span aria-hidden="true">←</span></button>
+              <button type="button" class="button button-outline" id="category-next" aria-label="Пролистать категории вправо" aria-controls="categories"><span aria-hidden="true">→</span></button>
+            </div>
+          </div>
           <div class="tag-bar" id="filters" role="group" aria-label="Фильтр по тегам"></div>
         </div>
       </div>
@@ -107,16 +121,17 @@
               <a class="map-overlay" id="map-link" hidden><span>Нажмите, чтобы построить маршрут</span></a>
             </div>
             <p id="map-note" class="muted">Точный адрес пока не указан.</p>
-            <div class="actions">
+            <div class="actions map-actions" id="map-actions" hidden>
               <a class="button button-primary" id="yandex" hidden>Маршрут в Яндекс Картах</a>
               <a class="button button-outline" id="gis" hidden>Открыть в 2ГИС</a>
+              <a class="button button-outline" id="google-maps" hidden>Открыть в Google Картах</a>
             </div>
           </div>
         </div>
       </div>
     </section>
   </main>
-  <footer class="footer"><div class="shell"><a class="brand" href="#top"><span class="brand-mark" aria-hidden="true">✳</span><span data-name>Кофейня в Дивееве</span></a><a href="#top">Наверх</a></div></footer>
+  <footer class="footer"><div class="shell"><a class="brand" href="#top"><span class="brand-mark" aria-hidden="true">✳</span><span data-name>Кофейня в Дивееве</span></a><a class="back-to-top" href="#page-start">Вернуться наверх <span aria-hidden="true">↑</span></a></div></footer>
   <nav class="mobile-nav" aria-label="Быстрая навигация"><a href="#top"><span class="mobile-nav-icon" aria-hidden="true">⌂</span><span class="mobile-nav-label">Главная</span></a><a href="#menu"><span class="mobile-nav-icon" aria-hidden="true">☕</span><span class="mobile-nav-label">Меню</span></a><a href="#about"><span class="mobile-nav-icon" aria-hidden="true">✳</span><span class="mobile-nav-label">О нас</span></a><a href="#directions"><span class="mobile-nav-icon" aria-hidden="true">↗</span><span class="mobile-nav-label">Маршрут</span></a></nav>
   <noscript><p class="shell">Включите JavaScript, чтобы увидеть меню и часы работы.</p></noscript>
 </body>

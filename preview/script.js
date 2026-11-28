@@ -1,22 +1,34 @@
 "use strict";
 
-const spreadsheetUrl = "https://docs.google.com/spreadsheets/d/1xJno03epbyJtxuAWT6uYdtIqZ1eaveS4Z5aMZHIgGbk/edit";
-const spreadsheetId = spreadsheetUrl.match(/\/d\/([^/]+)/)[1];
+const spreadsheetId = "1xJno03epbyJtxuAWT6uYdtIqZ1eaveS4Z5aMZHIgGbk";
+const spreadsheetBase = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
 const cacheKey = `coffee-diveevo:${spreadsheetId}:v5`;
 const sheets = {
-  menu: { name: "Меню", columns: ["Категория", "Название", "Описание", "Объем", "Цена", "Теги", "Фото", "Наличие", "Блюдо дня"] },
-  showcase: { name: "Витрина", columns: ["Тип", "Название", "Описание", "Цена", "Активно", "Фото"] },
-  promos: { name: "Акции", columns: ["Заголовок", "Текст", "Активно", "Фото"] },
-  settings: { name: "Настройки", columns: ["Параметр", "Значение"] }
+  menu: {
+    name: "Меню",
+    gid: 101,
+    columns: ["Категория", "Название", "Описание", "Объем", "Цена", "Теги", "Фото", "Наличие", "Блюдо дня"],
+    required: ["Название", "Наличие"],
+    important: ["Цена", "Объем", "Категория", "Блюдо дня"]
+  },
+  promos: { name: "Акции", gid: 103, columns: ["Заголовок", "Текст", "Активно", "Фото"], required: ["Заголовок", "Текст", "Активно"] },
+  settings: { name: "Настройки", gid: 104, columns: ["Параметр", "Значение"] },
+  gallery: { name: "Галерея", gid: 201, columns: ["Фото", "Подпись", "Активно", "Порядок"], required: ["Фото", "Активно"] },
+  amenities: { name: "Удобства", gid: 202, columns: ["Название", "Активно"] },
+  sections: { name: "Разделы", gid: 203, columns: ["Раздел", "Активно", "Порядок"], required: ["Раздел", "Активно"] },
+  exceptions: {
+    name: "Расписание",
+    gid: 204,
+    columns: ["Дата исключения (ГГГГ-ММ-ДД)", "Открытие (ЧЧ:ММ)", "Закрытие (ЧЧ:ММ)", "Закрыто весь день", "Комментарий"],
+    required: ["Дата исключения (ГГГГ-ММ-ДД)", "Открытие (ЧЧ:ММ)", "Закрытие (ЧЧ:ММ)", "Закрыто весь день"]
+  }
 };
-
-Object.assign(sheets, { gallery:{name:"Галерея",columns:["Фото","Подпись","Активно","Порядок"]}, amenities:{name:"Удобства",columns:["Название","Активно"]}, sections:{name:"Разделы",columns:["Раздел","Активно","Порядок"]}, exceptions:{name:"Расписание",columns:["Дата исключения (ГГГГ-ММ-ДД)","Открытие (ЧЧ:ММ)","Закрытие (ЧЧ:ММ)","Закрыто весь день","Комментарий"]} });
 const starterRows = {
   menu: [
     ["Кофе","Эспрессо","Классический насыщенный шот спешелти-кофе","60 мл","200","постное","","Да"],
     ["Кофе","Американо","Эспрессо с горячей водой","200 / 300 мл","200 / 280","постное","","Да"],
     ["Кофе","Капучино","Классический баланс эспрессо и взбитого молока","250 / 350 мл","250 / 330","хит","","Да"],
-    ["Кофе","Латте","Нежный молочный напиток на основе эспрессо","250 / 350 мл","250 / 330","","https://fapirozenko-blip.github.io/coffee-diveevo/preview/images/latte.webp","Да"],
+    ["Кофе","Латте","Нежный молочный напиток на основе эспрессо","250 / 350 мл","250 / 330","","./images/latte.webp","Да"],
     ["Кофе","Флэт Уайт","Двойной эспрессо с тонким слоем бархатистого молока","200 / 300 мл","280 / 330","","","Да"],
     ["Кофе","Раф классический","Сливочный кофейный напиток с ванильным сахаром","300 мл","350","","","Да"],
     ["Холодные напитки","Айс-латте","Освежающий холодный латте со льдом","350 мл","330","","","Да"],
@@ -33,7 +45,7 @@ const starterRows = {
     ["Добавки","Альтернативное молоко","Кокосовое, миндальное, банановое или овсяное","порция","50 / 70","постное, альт. молоко","","Да"],
     ["Добавки","Сироп в напиток","Большой выбор вкусов на баре","20 мл","30","","","Да"],
     ["Добавки","Маршмеллоу","Воздушный зефир для кофе или какао","порция","40","","","Да"],
-    ["Завтраки","Вафля с фруктами","Хрустящая венская вафля со свежими сезонными фруктами","1 порция","330","","https://fapirozenko-blip.github.io/coffee-diveevo/preview/images/waffle.webp","Да"],
+    ["Завтраки","Вафля с фруктами","Хрустящая венская вафля со свежими сезонными фруктами","1 порция","330","","./images/waffle.webp","Да"],
     ["Завтраки","Запеканка творожная","Нежная домашняя запеканка из фермерского творога","1 порция","320","","","Да"],
     ["Завтраки","Вафля картофельная","Сытная картофельная вафля с соусом","1 порция","400","","","Да"],
     ["Завтраки","Наггетсы куриные","Хрустящие куриные наггетсы","8 шт","250","","","Да"],
@@ -53,11 +65,6 @@ const starterRows = {
     ["Десерты","Мороженое","Два шарика сливочного пломбира с топпингом","2 шарика","330","","","Да"],
     ["Холодные напитки","Молочный коктейль","Ванильный, шоколадный или клубничный","400 мл","300","","","Да"]
   ],
-  showcase: [
-    ["Суп дня","Овощной крем-суп с гренками","Готовим каждое утро из свежих овощей (можно постный вариант)","300","Да",""],
-    ["Десерт на витрине","Чизкейк Нью-Йорк","Классический сливочный чизкейк на песочной основе","290","Да",""],
-    ["Десерт на витрине","Медовик домашний","Тонкие медовые коржи со сметанным кремом","270","Да",""]
-  ],
   promos: [
     ["Завтраки весь день","Подаём горячие вафли, сырники и блинчики с открытия и до самого закрытия","Да",""],
     ["Постное меню","Многие блюда и напитки на альтернативном молоке приготовим в постном варианте — просто скажите бариста","Да",""]
@@ -71,11 +78,7 @@ const starterRows = {
     ["Режим Пн-Пт","08:00 - 21:00"],
     ["Режим Сб-Вс","09:00 - 21:00"],
     ["Особый режим",""],
-    ["Адрес","с. Дивеево, ул. Арзамасская (гостиный двор «Александрина»)"],
-    ["Ориентир","В шаговой доступности от центра Дивеево, рядом удобная парковка"],
-    ["Координаты","55.0435, 43.2415"],
-    ["Ссылка Яндекс Карты","https://yandex.ru/maps/?rtext=~55.0435,43.2415&rtt=mt"],
-    ["Ссылка 2ГИС","https://2gis.ru/"],
+    ["Адрес","с. Дивеево, Нижегородская область"],
     ["Телефон","+7 (900) 000-00-00"],
     ["Telegram","https://t.me/"],
     ["VK","https://vk.com/"],
@@ -107,14 +110,14 @@ starterRows.menu = starterRows.menu.map((row) => {
     item[2] = "Готовим каждое утро из свежих овощей (можно постный вариант)";
     item[3] = "300 мл";
     item[4] = "300";
-    item[6] = "https://fapirozenko-blip.github.io/coffee-diveevo/preview/images/showcase-soup.svg";
+    item[6] = "./images/showcase-soup.svg";
     item[8] = "Да";
   }
   return item;
 });
 starterRows.menu.push(
-  ["Десерты", "Чизкейк Нью-Йорк", "Классический сливочный чизкейк на песочной основе", "1 порция", "290", "", "https://fapirozenko-blip.github.io/coffee-diveevo/preview/images/showcase-cheesecake.svg", "Да", "Да"],
-  ["Десерты", "Медовик домашний", "Тонкие медовые коржи со сметанным кремом", "1 порция", "270", "", "https://fapirozenko-blip.github.io/coffee-diveevo/preview/images/showcase-honey-cake.svg", "Да", "Да"]
+  ["Десерты", "Чизкейк Нью-Йорк", "Классический сливочный чизкейк на песочной основе", "1 порция", "290", "", "./images/showcase-cheesecake.svg", "Да", "Да"],
+  ["Десерты", "Медовик домашний", "Тонкие медовые коржи со сметанным кремом", "1 порция", "270", "", "./images/showcase-honey-cake.svg", "Да", "Да"]
 );
 
 const $ = (id) => document.getElementById(id);
@@ -122,7 +125,6 @@ const clean = (value) => String(value ?? "").trim();
 const key = (value) => clean(value).toLowerCase().replace(/ё/g, "е").replace(/[‐‑‒–—−]/g, "-").replace(/\s+/g, " ");
 const splitList = (value) => clean(value).split(/[,;|\n]+/).map(clean).filter(Boolean);
 const isYes = (value) => ["да", "true", "1"].includes(key(value));
-const isNo = (value) => ["нет", "false", "0"].includes(key(value));
 let filters = ["Все"]; 
 let searchText = "";
 
@@ -136,10 +138,28 @@ function node(tag, className, content) {
 function httpUrl(value) {
   try {
     const url = new URL(clean(value));
-    return ["https:", "http:"].includes(url.protocol) ? url : null;
+    return ["https:", "http:"].includes(url.protocol) && !url.username && !url.password ? url : null;
   } catch {
     return null;
   }
+}
+
+function serviceUrl(value, host, path) {
+  const url = httpUrl(value);
+  return url?.protocol === "https:" && !url.port && host.test(url.hostname) && path.test(url.pathname) ? url : null;
+}
+
+function imageUrl(value) {
+  const path = clean(value);
+  const localPath = /^\.\/images\/[\w.-]+\.(?:webp|svg|png)$/i;
+  if (localPath.test(path)) return new URL(path, document.baseURI);
+
+  const url = httpUrl(path);
+  if (url?.hostname === "fapirozenko-blip.github.io") {
+    const relativePath = url.pathname.replace(/^\/coffee-diveevo\/preview\//, "./");
+    if (localPath.test(relativePath)) return new URL(relativePath, document.baseURI);
+  }
+  return url;
 }
 
 function records(kind, rows) {
@@ -161,31 +181,22 @@ const cachedRows = readCache();
 const rows = { ...starterRows, ...cachedRows };
 const demo = Object.fromEntries(Object.keys(sheets).map((kind) => [kind, !(kind in cachedRows)]));
 
-function convertResponse(payload, kind) {
-  if (payload?.status === "error" || !Array.isArray(payload?.table?.rows)) {
-    throw new Error("Google Sheets не вернул таблицу");
+function parseCsv(text) {
+  const csv = text.replace(/^\uFEFF/, "");
+  const rows = [];
+  let row = [];
+  // Читаем поле вместе с разделителем, чтобы сохранить переносы строк внутри кавычек.
+  const field = /("(?:[^"]|"")*"|[^",\r\n]*)(,|\r\n|\n|\r|$)/y;
+  while (true) {
+    const match = field.exec(csv);
+    if (!match) throw new Error("Некорректный CSV");
+    const [, value, separator] = match;
+    row.push(value.startsWith('"') ? value.slice(1, -1).replaceAll('""', '"') : value);
+    if (separator === ",") continue;
+    rows.push(row);
+    if (!separator || field.lastIndex === csv.length) return rows;
+    row = [];
   }
-
-  const labels = sheets[kind].columns.map(key);
-  const actualLabels = (payload.table.cols || []).map((column) => key(column.label));
-  let indexes = labels.map((label) => actualLabels.indexOf(label));
-  const dataRows = payload.table.rows;
-  if (indexes.some((index) => index < 0)) {
-    const firstRow = (dataRows[0]?.c || []).map((cell) => key(cell?.v));
-    const headerIndexes = labels.map((label) => firstRow.indexOf(label));
-    if (headerIndexes.every((index) => index >= 0)) {
-      indexes = headerIndexes;
-      return unpackRows(dataRows.slice(1), indexes);
-    }
-    if (!dataRows.length) return [];
-    throw new Error("Столбцы листа не совпадают с ожидаемыми");
-  }
-  return unpackRows(dataRows, indexes);
-}
-
-function unpackRows(dataRows, indexes) {
-  return dataRows.map(({ c }) => indexes.map((index) => clean(c?.[index]?.f ?? c?.[index]?.v)))
-    .filter((row) => row.some(Boolean));
 }
 
 function parseGviz(text) {
@@ -196,44 +207,75 @@ function parseGviz(text) {
   return JSON.parse(match[1]);
 }
 
-let callbackId = 0;
-
-function loadJsonp(url) {
-  return new Promise((resolve, reject) => {
-    const callback = `coffeeSheetsResponse${++callbackId}`;
-    const script = document.createElement("script");
-    const timer = window.setTimeout(() => finish(new Error("Google Sheets не ответил вовремя")), 5000);
-    function finish(error, payload) {
-      clearTimeout(timer);
-      script.remove();
-      delete window[callback];
-      if (error) reject(error);
-      else resolve(payload);
-    }
-    window[callback] = (payload) => finish(null, payload);
-    script.onerror = () => finish(new Error("Лист Google Sheets недоступен"));
-    url.searchParams.set("tqx", `out:json;responseHandler:${callback}`);
-    script.src = url.href;
-    document.head.append(script);
-  });
-}
-
-async function loadSheet(kind) {
-  const url = new URL(`https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq`);
-  url.search = new URLSearchParams({ tqx: "out:json", sheet: sheets[kind].name, headers: "1" });
+async function fetchSheetText(path, params, contentType, timeoutMs = 8000) {
+  const url = new URL(spreadsheetBase + path);
+  url.search = new URLSearchParams(params);
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 3500);
-  let payload;
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, { signal: controller.signal, credentials: "omit", cache: "no-cache" });
     if (!response.ok) throw new Error(`Google Sheets: ${response.status}`);
-    payload = parseGviz(await response.text());
-  } catch {
-    payload = await loadJsonp(url);
+    if (!contentType.test(response.headers.get("content-type") || "")) {
+      throw new Error("Google Sheets вернул данные в неожиданном формате");
+    }
+    return await response.text();
   } finally {
     clearTimeout(timeout);
   }
-  return convertResponse(payload, kind);
+}
+
+function cellText(cell) {
+  return clean(cell?.f) || clean(cell?.v);
+}
+
+async function restoreUnformattedPrices(items) {
+  const missing = items.filter((item) => isYes(item["Наличие"]) && item["Название"] && !item["Цена"]);
+  if (!missing.length) return;
+  try {
+    // CSV сохраняет смешанные типы. GViz нужен только для ячеек, где CSV не дал отображаемого текста.
+    const text = await fetchSheetText("/gviz/tq", { gid: sheets.menu.gid, tqx: "out:json", headers: "1" }, /(?:javascript|json)\b/i, 3500);
+    const table = parseGviz(text)?.table;
+    if (!Array.isArray(table?.rows)) throw new Error("Google Sheets не вернул строки");
+    const headers = table.cols.map((column) => key(column.label));
+    const nameIndex = headers.indexOf(key("Название"));
+    const priceIndex = headers.indexOf(key("Цена"));
+    if (nameIndex < 0 || priceIndex < 0) return;
+
+    const source = new Map();
+    for (const { c } of table.rows) {
+      const name = cellText(c?.[nameIndex]);
+      // Одинаковые названия нельзя надёжно сопоставить при чтении двух разных выгрузок.
+      source.set(name, source.has(name) ? "" : cellText(c?.[priceIndex]));
+    }
+    const counts = new Map();
+    for (const item of items) counts.set(item["Название"], (counts.get(item["Название"]) || 0) + 1);
+    for (const item of missing) {
+      const name = item["Название"];
+      if (counts.get(name) === 1) item["Цена"] = source.get(name) || "";
+    }
+  } catch (error) {
+    console.warn("Меню: исходные значения пустых цен недоступны", error.message);
+  }
+}
+
+async function loadSheet(kind) {
+  const { name, gid, columns, required = columns, important = [] } = sheets[kind];
+  const text = await fetchSheetText("/export", { format: "csv", gid }, /^text\/csv\b/i);
+  const [header, ...data] = parseCsv(text);
+  const labels = header.map(key);
+  const missingRequired = required.filter((label) => !labels.includes(key(label)));
+  if (missingRequired.length) throw new Error(`Отсутствуют обязательные столбцы: ${missingRequired.join(", ")}`);
+  const missingImportant = important.filter((label) => !labels.includes(key(label)));
+  if (missingImportant.length) console.warn(`Лист «${name}»: отсутствуют важные столбцы: ${missingImportant.join(", ")}`);
+
+  const indexes = columns.map((label) => labels.indexOf(key(label)));
+  const result = data.map((row) => indexes.map((index) => clean(row[index]))).filter((row) => row.some(Boolean));
+  if (kind !== "menu" || missingImportant.includes("Цена")) return result;
+
+  const items = records(kind, result);
+  await restoreUnformattedPrices(items);
+  reportMenuPrices(items);
+  return items.map((item) => columns.map((label) => item[label]));
 }
 
 const defaultSettings = Object.fromEntries(starterRows.settings.map(([name, value]) => [key(name), value]));
@@ -254,10 +296,37 @@ function settingOrDefault(...names) {
   return setting(...names) || defaultSettings[key(names[0])] || "";
 }
 
+function settingEnabled(name) {
+  return !["нет", "false", "0"].includes(key(setting(name)));
+}
+
+const currencySuffix = /\s*(?:₽|руб\.?|RUB)$/i;
+
+function isNumericPrice(value) {
+  return /^(?:\d+|\d{1,3}(?:\s\d{3})+)(?:[.,]\d+)?$/.test(value.replace(currencySuffix, ""));
+}
+
+function reportMenuPrices(items) {
+  for (const item of items) {
+    const name = item["Название"];
+    if (!name || !isYes(item["Наличие"])) continue;
+    const price = item["Цена"];
+    const prices = price.split(/\s*\/\s*/);
+    if (!price) {
+      console.warn(`Меню: отсутствует цена у позиции «${name}»`);
+    } else if (!prices.every(isNumericPrice)) {
+      console.warn(`Меню: нестандартный формат цены у позиции «${name}»`);
+    } else if (prices.length > 1) {
+      const volumes = item["Объем"].split(/\s*\/\s*/);
+      if (volumes.length !== prices.length || !volumes.every(Boolean)) {
+        console.warn(`Меню: число цен и объёмов не совпадает у позиции «${name}»`);
+      }
+    }
+  }
+}
+
 function rubles(price) {
-  if (!price) return "";
-  price = String(price);
-  if (/[₽]|руб\.?|\bRUB\b/i.test(price)) return price;
+  if (!price.split(/\s*\/\s*/).every(isNumericPrice) || currencySuffix.test(price)) return price;
   return `${price} ₽`;
 }
 
@@ -265,11 +334,31 @@ function addText(parent, tag, className, content) {
   if (content) parent.append(node(tag, className, content));
 }
 
+function galleryArrow(direction, onClick) {
+  const button = node("button", "gallery-arrow");
+  button.type = "button";
+  button.setAttribute("aria-label", direction < 0 ? "Предыдущее фото" : "Следующее фото");
+  button.innerHTML = direction < 0
+    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>'
+    : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
+  button.addEventListener("click", () => onClick(direction));
+  return button;
+}
+
+function swipeDirection(start, end) {
+  if (!start || !end) return 0;
+  const dx = end.clientX - start.clientX;
+  const dy = end.clientY - start.clientY;
+  return Math.abs(dx) > Math.max(45, Math.abs(dy)) ? (dx < 0 ? 1 : -1) : 0;
+}
+
 function addImage(parent, url, alt, options = {}) {
   const image = node("img");
   image.alt = alt;
   image.loading = options.eager ? "eager" : "lazy";
+  image.hidden = Boolean(options.onLoad);
   image.decoding = "async";
+  if (options.onLoad) image.addEventListener("load", options.onLoad, { once: true });
   image.addEventListener("error", () => {
     image.remove();
     options.onError?.();
@@ -284,7 +373,8 @@ function addImage(parent, url, alt, options = {}) {
 
     const open = () => {
       if (document.querySelector(".gallery-photo-dialog")) return;
-      const photos = [...parent.querySelectorAll("img")];
+      const photos = loadedGalleryPhotos(parent);
+      if (!photos.includes(image)) return;
       const dialog = document.createElement("dialog");
       dialog.className = "gallery-photo-dialog";
       dialog.setAttribute("aria-label", "Фотографии кофейни");
@@ -307,52 +397,27 @@ function addImage(parent, url, alt, options = {}) {
         const selected = photos[index];
         full.src = selected.currentSrc || selected.src;
         full.alt = selected.alt || "Фотография кофейни";
-        dots.querySelectorAll("button").forEach((dot, i) => {
-          dot.setAttribute("aria-current", String(i === index));
-        });
-        previous.hidden = next.hidden = photos.length < 2;
-        dots.hidden = photos.length < 2;
       };
 
       const controls = document.createElement("div");
       controls.className = "gallery-photo-controls";
-      const makeArrow = (direction, delta) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "gallery-arrow";
-        button.setAttribute("aria-label", direction === "prev" ? "Предыдущее фото" : "Следующее фото");
-        button.innerHTML = direction === "prev"
-          ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>'
-          : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
-        button.addEventListener("click", () => show(delta));
-        return button;
-      };
-      const previous = makeArrow("prev", -1);
-      const next = makeArrow("next", 1);
-      controls.append(previous, next);
+      controls.hidden = photos.length < 2;
+      if (photos.length > 1) controls.append(galleryArrow(-1, show), galleryArrow(1, show));
 
-      const dots = document.createElement("div");
-      dots.className = "gallery-photo-dots";
-      photos.forEach((photo, i) => {
-        const dot = document.createElement("button");
-        dot.type = "button";
-        dot.className = "gallery-photo-dot";
-        dot.setAttribute("aria-label", `Фото ${i + 1} из ${photos.length}`);
-        dot.addEventListener("click", () => show(i - index));
-        dots.append(dot);
-      });
-
-      let touchStartX = 0;
+      let touchStart;
       dialog.addEventListener("touchstart", event => {
-        touchStartX = event.changedTouches[0].clientX;
+        touchStart = event.changedTouches[0];
       }, {passive:true});
       dialog.addEventListener("touchend", event => {
-        const delta = event.changedTouches[0].clientX - touchStartX;
-        if (Math.abs(delta) > 45 && photos.length > 1) show(delta < 0 ? 1 : -1);
+        const direction = swipeDirection(touchStart, event.changedTouches[0]);
+        touchStart = null;
+        if (direction && photos.length > 1) show(direction);
       }, {passive:true});
       dialog.addEventListener("keydown", event => {
-        if (event.key === "ArrowLeft") show(-1);
-        if (event.key === "ArrowRight") show(1);
+        if (photos.length > 1 && ["ArrowLeft", "ArrowRight"].includes(event.key)) {
+          event.preventDefault();
+          show(event.key === "ArrowLeft" ? -1 : 1);
+        }
         if (event.key === "Escape") dialog.close();
       });
       dialog.addEventListener("click", event => {
@@ -363,7 +428,7 @@ function addImage(parent, url, alt, options = {}) {
         if (image.isConnected) image.focus({preventScroll:true});
       }, {once:true});
 
-      panel.append(full, controls, dots, close);
+      panel.append(full, controls, close);
       dialog.append(panel);
       document.body.append(dialog);
       dialog.showModal();
@@ -384,22 +449,19 @@ function renderPromos() {
   const active = records("promos", rows.promos).filter((promo) => isYes(promo["Активно"]) && (promo["Заголовок"] || promo["Текст"]));
   announcements.replaceChildren(...active.map((promo) => {
     const line = node("article", "promo-card");
-    const photo = httpUrl(promo["Фото"]); if (photo) addImage(line, photo, promo["Заголовок"]);
+    const photo = imageUrl(promo["Фото"]); if (photo) addImage(line, photo, promo["Заголовок"]);
     addText(line, "strong", "", promo["Заголовок"]);
     if (promo["Текст"]) line.append(promo["Заголовок"] ? ` · ${promo["Текст"]}` : promo["Текст"]);
     return line;
   }));
-  announcements.hidden = !active.length;
-  const hero = $("hero-visual")?.closest("section"); if (hero && !hero.contains(announcements)) hero.after(announcements);
 }
 
 function renderShowcase() {
   const active = records("menu", rows.menu).filter((item) => isYes(item["Наличие"]) && isYes(item["Блюдо дня"]) && item["Название"]);
-  $("showcase").hidden = !active.length;
   $("showcase-note").hidden = !demo.menu;
   $("showcase-grid").replaceChildren(...active.map((item) => {
     const card = node("article", "showcase-card");
-    const photo = httpUrl(item["Фото"]); if (photo) addImage(card, photo, item["Название"], { onError: () => card.classList.add("menu-card--no-photo") }); else card.classList.add("menu-card--no-photo");
+    const photo = imageUrl(item["Фото"]); if (photo) addImage(card, photo, item["Название"], { onError: () => card.classList.add("menu-card--no-photo") }); else card.classList.add("menu-card--no-photo");
     const category = key(item["Категория"]);
     const label = category === "десерты" ? "Десерт на витрине" : category === "основные блюда" ? "Блюдо дня" : "Выбор дня";
     addText(card, "p", "eyebrow", label);
@@ -409,6 +471,47 @@ function renderShowcase() {
     addText(card, "p", "price", rubles(item["Цена"]));
     return card;
   }));
+}
+
+function setupShowcaseScrolling() {
+  const track = $("showcase-grid");
+  const controls = $("showcase-controls");
+  const previous = $("showcase-prev");
+  const next = $("showcase-next");
+  function updateControls() {
+    const available = track.scrollWidth - track.clientWidth;
+    const canScroll = track.clientWidth > 0 && available > 1;
+    const canGoBack = canScroll && track.scrollLeft > 1;
+    const canGoForward = canScroll && track.scrollLeft < available - 1;
+    const focused = document.activeElement;
+    controls.hidden = !canScroll;
+    previous.hidden = !canGoBack;
+    next.hidden = !canGoForward;
+    if (canScroll) track.tabIndex = 0;
+    else track.removeAttribute("tabindex");
+    if (focused === previous && !canGoBack && canGoForward) next.focus({ preventScroll: true });
+    if (focused === next && !canGoForward && canGoBack) previous.focus({ preventScroll: true });
+  }
+  function scroll(direction) {
+    const card = track.firstElementChild;
+    if (!card) return;
+    const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+    const step = card.getBoundingClientRect().width + gap;
+    const behavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
+    track.scrollBy({ left: direction * step, behavior });
+  }
+  previous.addEventListener("click", () => scroll(-1));
+  next.addEventListener("click", () => scroll(1));
+  track.addEventListener("scroll", updateControls, { passive: true });
+  track.addEventListener("keydown", (event) => {
+    if (event.target !== track || !["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+    event.preventDefault();
+    scroll(event.key === "ArrowLeft" ? -1 : 1);
+  });
+  if ("ResizeObserver" in window) new ResizeObserver(updateControls).observe(track);
+  else window.addEventListener("resize", updateControls);
+  new MutationObserver(updateControls).observe(track, { childList: true });
+  updateControls();
 }
 
 function renderButtons(container, options, selected, onSelect) {
@@ -431,6 +534,58 @@ function renderButtons(container, options, selected, onSelect) {
   }
 }
 
+function setupCategoryScrolling() {
+  const row = $("category-row");
+  const track = $("categories");
+  const arrows = $("category-arrows");
+  const previous = $("category-prev");
+  const next = $("category-next");
+  const desktopInput = matchMedia("(hover: hover) and (pointer: fine)");
+
+  function reveal(button) {
+    if (!button) return;
+    const viewport = track.getBoundingClientRect();
+    const item = button.getBoundingClientRect();
+    if (item.left < viewport.left) track.scrollLeft += item.left - viewport.left;
+    else if (item.right > viewport.right) track.scrollLeft += item.right - viewport.right;
+  }
+
+  function updateArrows() {
+    // Compare with the full row so arrows never create the overflow that keeps them visible.
+    const active = track.querySelector('[aria-pressed="true"]');
+    const focused = document.activeElement;
+    const showArrows = desktopInput.matches && row.clientWidth > 0 && track.scrollWidth > row.clientWidth + 1;
+    const visibilityChanged = arrows.hidden === showArrows;
+    arrows.hidden = !showArrows;
+    if (visibilityChanged) {
+      if (!showArrows && arrows.contains(focused)) active?.focus({ preventScroll: true });
+      reveal(active);
+    }
+    previous.setAttribute("aria-disabled", String(track.scrollLeft <= 1));
+    next.setAttribute("aria-disabled", String(track.scrollLeft >= track.scrollWidth - track.clientWidth - 1));
+  }
+
+  for (const [arrow, direction] of [[previous, -1], [next, 1]]) {
+    arrow.addEventListener("click", () => {
+      if (arrow.getAttribute("aria-disabled") === "true") return;
+      const behavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
+      track.scrollBy({ left: direction * track.clientWidth * .8, behavior });
+    });
+  }
+  for (const event of ["click", "focusin"]) {
+    track.addEventListener(event, (interaction) => reveal(interaction.target.closest("button")));
+  }
+  track.addEventListener("scroll", updateArrows, { passive: true });
+  desktopInput.addEventListener("change", updateArrows);
+  document.fonts?.addEventListener("loadingdone", updateArrows);
+  if ("ResizeObserver" in window) new ResizeObserver(updateArrows).observe(row);
+  else window.addEventListener("resize", updateArrows);
+  new MutationObserver(() => {
+    updateArrows();
+    reveal(track.querySelector('[aria-pressed="true"]'));
+  }).observe(track, { childList: true });
+}
+
 function renderMenu() {
   const items = records("menu", rows.menu);
   menu = items
@@ -447,7 +602,7 @@ function renderMenu() {
     selectedCategory, (value) => { selectedCategory = value; renderTagFilters(); });
 
   if (!$("menu-search")) {
-    const search = node("input", "menu-search"); search.id = "menu-search"; search.type = "search"; search.placeholder = "Найти блюдо или напиток"; search.setAttribute("aria-label", "Поиск по меню"); search.addEventListener("input", () => { searchText = key(search.value); renderMenuItems(); }); $("categories").before(search);
+    const search = node("input", "menu-search"); search.id = "menu-search"; search.type = "search"; search.placeholder = "Найти блюдо или напиток"; search.setAttribute("aria-label", "Поиск по меню"); search.addEventListener("input", () => { searchText = key(search.value); renderMenuItems(); }); $("category-row").before(search);
   }
   renderTagFilters();
   renderMenuItems();
@@ -468,16 +623,32 @@ function renderMenuItems(keepLimit = false) {
     && (selectedTag === filters[0] || item.tags.some((tag) => key(tag) === key(selectedTag))));
   $("menu-grid").replaceChildren(...visible.slice(0,menuLimit).map((item) => {
     const card = node("article", "menu-card");
-    const photo = httpUrl(item["Фото"]);
+    const photo = imageUrl(item["Фото"]);
     if (photo) addImage(card, photo, item["Название"]);
     const body = node("div", "menu-card-body");
     const heading = node("div", "item-heading");
     addText(heading, "h3", "", item["Название"]);
-    const prices = item["Цена"].split(/\s*\/\s*/); const volumes = item["Объем"].split(/\s*\/\s*/); const unit = item["Объем"].match(/(мл|г|л)\s*$/i)?.[0] || ""; 
-    if(prices.length>1 && prices.length===volumes.length){const variants=node("div","price-variants"); prices.forEach((p,i)=>{const v=node("div","price-variant");addText(v,"span","volume",volumes[i]+(/\d$/.test(volumes[i])&&unit?" "+unit:""));addText(v,"strong","price",rubles(p));variants.append(v);});heading.append(variants);}else addText(heading,"p","price",rubles(item["Цена"]));
+    const prices = item["Цена"].split(/\s*\/\s*/);
+    const volumes = item["Объем"].split(/\s*\/\s*/);
+    const pairPrices = prices.length > 1 && prices.length === volumes.length
+      && prices.every(isNumericPrice) && volumes.every(Boolean);
+    if (pairPrices) {
+      const unit = item["Объем"].match(/(мл|г|л)$/i)?.[0];
+      const variants = node("div", "price-variants");
+      prices.forEach((price, index) => {
+        const variant = node("div", "price-variant");
+        const volume = volumes[index];
+        addText(variant, "span", "volume", unit && /\d$/.test(volume) ? `${volume} ${unit}` : volume);
+        addText(variant, "strong", "price", rubles(price));
+        variants.append(variant);
+      });
+      heading.append(variants);
+    } else {
+      addText(heading, "p", "price", rubles(item["Цена"]));
+    }
     body.append(heading);
     addText(body, "p", "muted", item["Описание"]);
-    if(prices.length===1 || prices.length!==volumes.length) addText(body, "p", "volume", item["Объем"]);
+    if (!pairPrices) addText(body, "p", "volume", item["Объем"]);
     if (item.tags.length) {
       const tags = node("ul", "item-tags");
       tags.append(...item.tags.map((tag) => node("li", "", tag)));
@@ -496,7 +667,7 @@ function renderMenuItems(keepLimit = false) {
   $("menu-count").textContent = visible.length ? `Позиций в меню: ${visible.length}` : emptyText;
 }
 
-function renderIntro() {
+function renderIntroText() {
   const name = settingOrDefault("Название кофейни", "Название");
   const slogan = settingOrDefault("Слоган");
   const description = settingOrDefault("Подзаголовок", "Подзаголовок главного экрана");
@@ -512,83 +683,112 @@ function renderIntro() {
   $("about-title").textContent = settingOrDefault("Заголовок о нас", "Заголовок «О нас»");
   $("about-text").textContent = settingOrDefault("Текст о нас", "О нас", "Описание кофейни");
   $("quote").textContent = slogan;
+}
+
+function renderAmenities() {
   const amenities = demo.amenities ? splitList(settingOrDefault("Удобства")) : records("amenities",rows.amenities).filter(x=>isYes(x["Активно"])).map(x=>x["Название"]).filter(Boolean);
   document.querySelectorAll("[data-amenities]").forEach((list) => {
     list.replaceChildren(...amenities.map((text) => node("li", "", text)));
   });
+}
 
-  // Hero slideshow reuses the exact public photos shown in the About gallery.
-  const hero = $("hero-visual");
-  if (window.heroSlideshowTimer) window.clearInterval(window.heroSlideshowTimer);
-  const galleryPhotos = [];
+function gallerySheetPhotos() {
+  const photos = new Map();
   if (!demo.gallery) {
-    for (const item of records("gallery", rows.gallery)
-      .filter(x => isYes(x["Активно"]))
-      .sort((a,b) => Number(a["Порядок"]) - Number(b["Порядок"]))) {
-      const url = httpUrl(item["Фото"]);
-      if (url && !galleryPhotos.some(photo => photo.url.href === url.href)) {
-        galleryPhotos.push({url, caption:item["Подпись"] || "Интерьер кофейни"});
-      }
+    const active = records("gallery", rows.gallery).filter((item) => isYes(item["Активно"]));
+    active.sort((a, b) => Number(a["Порядок"]) - Number(b["Порядок"]));
+    for (const item of active) {
+      const url = imageUrl(item["Фото"]);
+      if (url) photos.set(url.href, { url, caption: item["Подпись"] || "Интерьер кофейни" });
     }
   }
+  return photos;
+}
+
+let heroSources = "";
+function renderHeroPhotos() {
+  const hero = $("hero-visual");
+  const art = $("hero-art");
+  const galleryPhotos = [...gallerySheetPhotos().values()];
   if (!galleryPhotos.length) {
-    const fallback = httpUrl(setting("Фото главного экрана"));
-    if (fallback) galleryPhotos.push({url:fallback,caption:""});
+    const fallback = imageUrl(setting("Фото главного экрана"));
+    if (fallback) galleryPhotos.push({ url: fallback });
   }
-  hero.replaceChildren();
+  const sources = JSON.stringify(galleryPhotos.map(({ url }) => url.href));
+  if (sources === heroSources) return;
+  heroSources = sources;
+  window.clearInterval(window.heroSlideshowTimer);
+  hero.replaceChildren(art);
   hero.classList.add("hero-slideshow");
-  galleryPhotos.forEach(({url,caption}, index) => {
-    const image = node("img", "hero-slide" + (index === 0 ? " is-active" : ""));
-    image.src = url.href;
+  const loadedSlides = () => [...hero.querySelectorAll(".hero-slide")]
+    .filter((image) => image.complete && image.naturalWidth > 0);
+  function showSlide(advance = false) {
+    const slides = loadedSlides();
+    const active = slides.findIndex((image) => image.classList.contains("is-active"));
+    const next = slides[active < 0 ? 0 : (active + Number(advance)) % slides.length];
+    slides.forEach((image) => image.classList.toggle("is-active", image === next));
+    art.hidden = Boolean(next);
+  }
+  art.hidden = false;
+  galleryPhotos.forEach(({url}, index) => {
+    const image = node("img", "hero-slide");
     image.alt = "";
     image.loading = index === 0 ? "eager" : "lazy";
     image.decoding = "async";
     image.draggable = false;
     image.setAttribute("aria-hidden","true");
-    image.addEventListener("error", () => image.remove(), {once:true});
+    image.addEventListener("load", () => showSlide(), { once: true });
+    image.addEventListener("error", () => {
+      image.remove();
+      showSlide();
+    }, { once: true });
+    image.src = url.href;
     hero.append(image);
   });
-  let activeSlide = 0;
-  const slides = () => [...hero.querySelectorAll(".hero-slide")];
-  if (slides().length > 1 && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  if (galleryPhotos.length > 1 && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
     window.heroSlideshowTimer = window.setInterval(() => {
-      if (document.hidden) return;
-      const current = slides();
-      if (current.length < 2) return;
-      current[activeSlide % current.length].classList.remove("is-active");
-      activeSlide = (activeSlide + 1) % current.length;
-      current[activeSlide].classList.add("is-active");
+      if (!document.hidden) showSlide(true);
     }, 3250);
   }
+}
 
+let gallerySources = "";
+let galleryNearViewport = !("IntersectionObserver" in window);
+function observeGallery() {
+  if (galleryNearViewport) return;
+  const observer = new IntersectionObserver((entries) => {
+    if (!entries.some((entry) => entry.isIntersecting)) return;
+    galleryNearViewport = true;
+    observer.disconnect();
+    renderGalleryPhotos();
+  }, { rootMargin: "300px" });
+  observer.observe($("gallery"));
+}
+
+function renderGalleryPhotos() {
+  if (!galleryNearViewport) return;
   const gallery = $("gallery");
-  const images = new Map();
-  for (const [name, value] of settings) {
-    if (!/^(фото интерьер[а-я]*|фото галереи|галерея)(?:[\s_-]*\d+)?$/.test(name)) continue;
-    for (const part of value.split(/[\s;|]+|,(?=\s*https?:\/\/)/)) {
-      const url = httpUrl(part);
-      if (url) images.set(url.href, { url, caption: "Интерьер кофейни" });
+  const images = gallerySheetPhotos();
+  if (demo.gallery) {
+    for (const [name, value] of settings) {
+      if (!/^(фото интерьер[а-я]*|фото галереи|галерея)(?:[\s_-]*\d+)?$/.test(name)) continue;
+      for (const part of value.split(/[\s;|]+|,(?=\s*https?:\/\/)/)) {
+        const url = imageUrl(part);
+        if (url) images.set(url.href, { url, caption: "Интерьер кофейни" });
+      }
     }
   }
-  if (!demo.gallery) {
-    images.clear();
-    for (const item of records("gallery",rows.gallery).filter(x=>isYes(x["Активно"])).sort((a,b)=>Number(a["Порядок"])-Number(b["Порядок"]))) {
-      const url=httpUrl(item["Фото"]);
-      if(url) images.set(url.href,{url,caption:item["Подпись"] || "Интерьер кофейни"});
-    }
-  }
-  gallery.replaceChildren($("gallery-quote") || node("div","quote-card",slogan));
-  function updateGalleryLayout() {
-    const count = gallery.querySelectorAll("img").length;
-    gallery.toggleAttribute("data-empty", count === 0);
-    gallery.toggleAttribute("data-even", count > 0 && count % 2 === 0);
-  }
+  const sources = JSON.stringify([...images].map(([url, { caption }]) => [url, caption]));
+  if (sources === gallerySources) return;
+  gallerySources = sources;
+  gallery.replaceChildren($("gallery-quote"));
   for (const {url,caption} of images.values()) {
     addImage(gallery, url, caption, {
-      onError: () => { updateGalleryLayout(); setupGallery(gallery); }
+      eager: true,
+      onLoad: () => setupGallery(gallery),
+      onError: () => setupGallery(gallery)
     });
   }
-  updateGalleryLayout();
   setupGallery(gallery);
 }
 
@@ -614,25 +814,55 @@ function parseHours(text) {
   return intervals.length ? intervals : null;
 }
 
-function dayCode(token, year) {
-  if (token.includes("-")) return Number(token.replaceAll("-", ""));
-  const [day, month, labelYear = year] = token.split(".");
-  return Number(labelYear) * 10000 + Number(month) * 100 + Number(day);
+function dateParts(token) {
+  if (token.includes("-")) {
+    const [year, month, day] = token.split("-").map(Number);
+    return { year, month, day };
+  }
+  const [day, month, year] = token.split(".").map(Number);
+  return { year, month, day };
+}
+
+function dayCode({ month, day }, year) {
+  const check = new Date(Date.UTC(year, month - 1, day));
+  return check.getUTCFullYear() === year && check.getUTCMonth() === month - 1 && check.getUTCDate() === day
+    ? year * 10000 + month * 100 + day : NaN;
+}
+
+function includesDate(dateKey, year, dates, isRange) {
+  if (!isRange) return dates.some((date) => dayCode(date, date.year ?? year) === dateKey);
+  const [start, end] = dates;
+  const wraps = Number(start.month * 100 + start.day > end.month * 100 + end.day);
+  const startYears = start.year ? [start.year] : end.year ? [end.year - wraps] : [year, year - 1];
+  return startYears.some((startYear) => {
+    const first = dayCode(start, startYear);
+    const last = dayCode(end, end.year ?? startYear + wraps);
+    return dateKey >= first && dateKey <= last;
+  });
 }
 
 function specialHoursFor(date, special) {
   const dateKey = Number(date.toISOString().slice(0, 10).replaceAll("-", ""));
-  for (const line of special.split(/[;\n]+/).map(clean).filter(Boolean)) {
-    const tokens = [...line.matchAll(dateToken)];
-    const intervals = parseHours(line.replace(dateToken, ""));
-    if (!intervals) continue;
-    if (!tokens.length) return intervals;
-    const year = date.getUTCFullYear();
-    const codes = tokens.map(([token]) => dayCode(token, year));
+  for (const line of special.split(/[;\n]+/).map(key).filter(Boolean)) {
+    // Время с точками выглядит как дата. Маскируем только пары допустимых часов.
+    const masked = line.replace(timeRange, (range, fromHour, fromMinute, toHour, toMinute) =>
+      parseHours(`${fromHour}:${fromMinute}-${toHour}:${toMinute}`) ? " ".repeat(range.length) : range);
+    // Если строка начинается с диапазона дат, он имеет приоритет перед временем с точками.
+    const leadingRange = /^((?:\d{4}-\d{2}-\d{2}|\d{1,2}\.\d{1,2}(?:\.\d{4})?)\s*(?:-|по)\s*(?:\d{4}-\d{2}-\d{2}|\d{1,2}\.\d{1,2}(?:\.\d{4})?))(?=\s+(?:\d|закрыто|выходн|не работаем|круглосуточно))/i.exec(line);
+    const rangeDates = leadingRange ? [...leadingRange[0].matchAll(dateToken)].map(([token]) => dateParts(token)) : [];
+    const hasDateRange = rangeDates.length === 2 && rangeDates.every((part) => Number.isFinite(dayCode(part, part.year ?? 2000)));
+    const dated = hasDateRange ? leadingRange[0] + masked.slice(leadingRange[0].length) : masked;
+    const tokens = [...dated.matchAll(dateToken)];
+    const positions = new Set(tokens.map((token) => token.index));
+    const intervals = parseHours(line.replace(dateToken, (token, index) => positions.has(index) ? "" : token));
+    if (!tokens.length) {
+      if (intervals) return intervals;
+      continue;
+    }
     const separator = tokens.length === 2 ? line.slice(tokens[0].index + tokens[0][0].length, tokens[1].index) : "";
-    if (codes.includes(dateKey) || (/^\s*(?:[–—-]|по)\s*$/.test(separator) && dateKey >= codes[0] && dateKey <= codes[1])) return intervals;
+    if (includesDate(dateKey, date.getUTCFullYear(), tokens.map(([token]) => dateParts(token)), /^\s*(?:-|по)\s*$/.test(separator))) return intervals;
   }
-  return null;
+  return undefined;
 }
 
 function clockTime(minutes) {
@@ -648,12 +878,14 @@ function getStatus(now, weekdayHours, weekendHours, special) {
     const date = new Date(midnight + offset * 86400000);
     const exception = specialHoursFor(date, special);
     const weekend = date.getUTCDay() === 0 || date.getUTCDay() === 6;
-    return { exception, hours: exception ?? (weekend ? weekendHours : weekdayHours) };
+    return { exception, hours: exception === undefined ? (weekend ? weekendHours : weekdayHours) : exception };
   }
   const today = forDay(0);
-  const yesterday = today.exception === null ? forDay(-1).hours : null;
+  const yesterday = today.exception === undefined ? forDay(-1).hours : null;
+  const nextDayOverridesOvernight = forDay(1).exception !== undefined;
   const openUntil = Math.max(-1,
-    ...(today.hours ?? []).filter(({ start, end }) => start <= minutes && end > minutes).map(({ end }) => end),
+    ...(today.hours ?? []).filter(({ start, end }) => start <= minutes && end > minutes)
+      .map(({ end }) => nextDayOverridesOvernight ? Math.min(end, 1440) : end),
     ...(yesterday ?? []).filter(({ end }) => end - 1440 > minutes).map(({ end }) => end - 1440));
   if (openUntil >= 0) {
     const allDay = today.hours?.some(({ start, end }) => start === 0 && end === 1440);
@@ -671,7 +903,7 @@ function getStatus(now, weekdayHours, weekendHours, special) {
         timeZone: "UTC", day: "numeric", month: "long"
       }).format(midnight + offset * 86400000) : "";
       if (day) return ["closed", `Откроемся ${day} в ${time}`];
-      return ["closed", `Закрыто до ${time}`];
+      return ["closed", offset === 1 ? `Откроемся завтра в ${time}` : `Закрыто до ${time}`];
     }
   }
   return ["closed", "Сейчас закрыто"];
@@ -688,7 +920,15 @@ function updateStatus() {
 function renderHours() {
   const weekdays = setting("Режим Пн-Пт");
   const weekends = setting("Режим Сб-Вс");
-  const extra = records("exceptions",rows.exceptions).map(x=>{let date=x["Дата исключения (ГГГГ-ММ-ДД)"]; const dm=date.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/); if(dm)date=dm[3]+"-"+dm[2].padStart(2,"0")+"-"+dm[1].padStart(2,"0"); if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return ""; return isYes(x["Закрыто весь день"])?date+" закрыто":date+" "+x["Открытие (ЧЧ:ММ)"]+"-"+x["Закрытие (ЧЧ:ММ)"];}).filter(Boolean).join("; ");
+  const extra = records("exceptions", rows.exceptions).map((row) => {
+    const date = row["Дата исключения (ГГГГ-ММ-ДД)"];
+    if (!/^(?:\d{4}-\d{2}-\d{2}|\d{1,2}\.\d{1,2}\.\d{4})$/.test(date)) return "";
+    const parts = dateParts(date);
+    if (!Number.isFinite(dayCode(parts, parts.year))) return "";
+    if (isYes(row["Закрыто весь день"])) return `${date} закрыто`;
+    const hours = `${row["Открытие (ЧЧ:ММ)"]}-${row["Закрытие (ЧЧ:ММ)"]}`;
+    return `${date} ${parseHours(hours)?.length ? hours : "часы уточняются"}`;
+  }).filter(Boolean).join("; ");
   const special = [extra,setting("Особый режим")].filter(Boolean).join("; ");
   schedule = { weekday: parseHours(weekdays), weekend: parseHours(weekends), special };
   $("hours").replaceChildren(...[["Пн–Пт", weekdays], ["Сб–Вс", weekends]].flatMap(([label, value]) => {
@@ -734,8 +974,10 @@ function renderContacts() {
   if (digits) $("phone").href = `tel:${phone.startsWith("+") ? "+" : ""}${digits}`;
   else $("phone").removeAttribute("href");
 
-  const telegramCandidate = httpUrl(setting("Telegram", "Ссылка Telegram", "Ссылка на Telegram", "Телеграм")); const telegram = telegramCandidate && telegramCandidate.pathname !== "/" ? telegramCandidate : null;
-  const vkCandidate = httpUrl(setting("VK", "Ссылка VK", "Ссылка на VK", "ВКонтакте")); const vk = vkCandidate && vkCandidate.pathname !== "/" ? vkCandidate : null;
+  const telegram = serviceUrl(setting("Telegram", "Ссылка Telegram", "Ссылка на Telegram", "Телеграм"),
+    /^(?:www\.)?(?:t\.me|telegram\.me)$/, /^\/.+/);
+  const vk = serviceUrl(setting("VK", "Ссылка VK", "Ссылка на VK", "ВКонтакте"),
+    /^(?:www\.|m\.)?vk\.(?:com|ru)$/, /^\/.+/);
   link("telegram", telegram);
   link("vk", vk);
   const social=$("social");
@@ -751,31 +993,57 @@ function renderContacts() {
   }
   social.hidden = !telegram && !vk && !social.querySelector("[data-custom-contact]");
 
-  let route = httpUrl(setting("Маршрут в Яндекс Картах", "Ссылка на Яндекс Карты", "Ссылка Яндекс Карты", "Яндекс Карты", "Яндекс маршрут", "Ссылка на маршрут", "Маршрут Яндекс", "Ссылка Яндекс", "Ссылка на Яндекс Маршрут"));
+  const yandexHost = /^(?:www\.)?yandex\.(?:ru|com)$/;
+  let route = serviceUrl(setting("Маршрут в Яндекс Картах", "Ссылка на Яндекс Карты", "Ссылка Яндекс Карты", "Яндекс Карты", "Яндекс маршрут", "Ссылка на маршрут", "Маршрут Яндекс", "Ссылка Яндекс", "Ссылка на Яндекс Маршрут"),
+    yandexHost, /^\/maps(?:\/|$)/);
   const destination = route?.searchParams.get("rtext")?.split("~").filter(Boolean).at(-1);
   const point = coordinates(destination) || coordinates(setting("Координаты", "Координаты кофейни"))
     || coordinates([setting("Широта"), setting("Долгота")].join(";"));
   const location = address || defaultSettings["адрес"];
+  const routeAddress = address && address !== defaultSettings["адрес"] ? address : "";
   if (!route && point) {
     route = new URL("https://yandex.ru/maps/");
     route.searchParams.set("rtext", `~${point.lat},${point.lon}`);
     route.searchParams.set("rtt", "mt");
   }
-  if (!route && address && address !== defaultSettings["адрес"]) {
+  if (!route && routeAddress) {
     route = new URL("https://yandex.ru/maps/");
-    route.searchParams.set("rtext", `~${address}`);
+    route.searchParams.set("rtext", `~${routeAddress}`);
     route.searchParams.set("rtt", "mt");
   }
-  const gisCandidate = httpUrl(setting("Открыть в 2ГИС", "2ГИС", "Ссылка на 2ГИС", "Ссылка 2ГИС", "2GIS"));
-  const gis = gisCandidate && gisCandidate.pathname !== "/"
-    ? gisCandidate
-    : new URL(`https://2gis.ru/search/${encodeURIComponent(point ? `${point.lat}, ${point.lon}` : location)}`);
-  link("yandex", route);
+  const gisCandidate = serviceUrl(setting("Открыть в 2ГИС", "2ГИС", "Ссылка на 2ГИС", "Ссылка 2ГИС", "2GIS"),
+    /^(?:(?:www\.)?2gis\.ru|go\.2gis\.com)$/, /^\/.+/);
+  const gisDestination = point ? `${point.lat}, ${point.lon}` : routeAddress;
+  const gis = gisCandidate || (gisDestination ? new URL(`https://2gis.ru/search/${encodeURIComponent(gisDestination)}`) : null);
+  const googleSetting = setting("Ссылка Google Карты", "Ссылка на Google Карты");
+  const googleLegacy = serviceUrl(googleSetting, /^maps\.google\.com$/, /^\/$/);
+  let googleRoute = serviceUrl(googleSetting, /^(?:www\.)?google\.com$/, /^\/maps(?:\/|$)/)
+    || serviceUrl(googleSetting, /^maps\.app\.goo\.gl$/, /^\/[^/]+\/?$/);
+  if (!googleRoute && (googleLegacy?.searchParams.get("q") || googleLegacy?.searchParams.get("daddr"))) {
+    googleRoute = googleLegacy;
+  }
+  const googleDestination = point ? `${point.lat},${point.lon}` : routeAddress || destination;
+  if (!googleRoute && googleDestination) {
+    googleRoute = new URL("https://www.google.com/maps/dir/");
+    googleRoute.search = new URLSearchParams({ api: "1", destination: googleDestination });
+  }
+
+  const yandexEnabled = settingEnabled("Показывать кнопку Яндекс Карты");
+  const gisEnabled = settingEnabled("Показывать кнопку 2ГИС");
+  const googleEnabled = settingEnabled("Показывать кнопку Google Карты");
+  const yandexButton = yandexEnabled ? route : null;
+  const gisButton = gisEnabled ? gis : null;
+  const googleButton = googleEnabled ? googleRoute : null;
+  link("yandex", yandexButton);
   link("map-link", route);
-  link("gis", gis);
+  link("gis", gisButton);
+  link("google-maps", googleButton);
   const heroRoute = $("hero-route");
-  heroRoute.href = route?.href || "#directions";
-  if (route) {
+  const primaryRoute = yandexButton || gisButton || googleButton;
+  heroRoute.href = primaryRoute?.href || "#directions";
+  heroRoute.textContent = primaryRoute ? "Построить маршрут" : "Как добраться";
+  heroRoute.hidden = false;
+  if (primaryRoute) {
     heroRoute.target = "_blank";
     heroRoute.rel = "noopener noreferrer";
   } else {
@@ -784,16 +1052,20 @@ function renderContacts() {
   }
 
   $("map-placeholder-text").textContent = location;
-  $("map-note").textContent = route ? "Маршрут откроется в Яндекс Картах." : "Точный адрес пока не указан.";
-  let embed = httpUrl(setting("Виджет Яндекс Карт", "Миникарта Яндекс", "Карта iframe"));
-  if (embed && !/^(?:www\.)?yandex\.(?:ru|com)$/.test(embed.hostname)) embed = null;
-  if (!embed && (point || route)) {
+  $("map-actions").hidden = !primaryRoute;
+  const hasMapSettings = Boolean(point || routeAddress || route || gis || googleRoute);
+  const mapNote = $("map-note");
+  mapNote.hidden = !primaryRoute && (hasMapSettings || !(yandexEnabled || gisEnabled || googleEnabled));
+  mapNote.textContent = primaryRoute ? "Выберите сервис, чтобы открыть маршрут." : "Точный адрес пока не указан.";
+  let embed = serviceUrl(setting("Виджет Яндекс Карт", "Миникарта Яндекс", "Карта iframe"),
+    yandexHost, /^\/map-widget\/v1\/?$/);
+  if (!embed && (point || routeAddress || destination)) {
     embed = new URL("https://yandex.ru/map-widget/v1/");
     if (point) {
       const center = `${point.lon},${point.lat}`;
       embed.search = new URLSearchParams({ ll: center, pt: `${center},pm2rdm`, z: "16", l: "map" });
     } else {
-      embed.searchParams.set("text", address || destination || `${settingOrDefault("Название кофейни", "Название")}, Дивеево`);
+      embed.searchParams.set("text", routeAddress || destination);
       embed.searchParams.set("z", "16");
     }
   }
@@ -811,74 +1083,64 @@ function renderContacts() {
 
 function renderSettings() {
   settings = new Map(records("settings", rows.settings).map((row) => [key(row["Параметр"]), row["Значение"]]));
-  renderIntro();
+  $("preview-banner").hidden = !settingEnabled("Показывать полосу тестовой версии");
+  renderIntroText();
+  if (demo.amenities) renderAmenities();
+  renderHeroPhotos();
+  if (demo.gallery) renderGalleryPhotos();
   renderHours();
   renderContacts();
 }
 
 var galleryTimer;
+function loadedGalleryPhotos(gallery) {
+  return [...gallery.querySelectorAll("img")].filter((image) => image.complete && image.naturalWidth > 0);
+}
+
 function setupGallery(gallery) {
   clearInterval(galleryTimer);
   gallery.querySelector(".gallery-controls")?.remove();
-  gallery.querySelector(".gallery-dots")?.remove();
-  let index = 0;
-  let paused = false;
-  const photos = () => [...gallery.querySelectorAll("img")];
-  const controls = node("div", "gallery-controls");
-  const makeArrow = (direction, delta) => {
-    const button = node("button", "gallery-arrow");
-    button.type = "button";
-    button.setAttribute("aria-label", direction === "prev" ? "Предыдущее фото" : "Следующее фото");
-    button.innerHTML = direction === "prev"
-      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>'
-      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
-    button.addEventListener("click", () => { paused = true; show(delta); });
-    return button;
-  };
-  const dots = node("div", "gallery-dots");
+  gallery.onkeydown = gallery.ontouchstart = gallery.ontouchend = gallery.ontouchcancel = null;
+  const list = loadedGalleryPhotos(gallery);
+  const quote = $("gallery-quote");
+  quote.hidden = list.length > 0;
+  gallery.toggleAttribute("data-empty", list.length === 0);
+  gallery.toggleAttribute("data-even", list.length > 0 && list.length % 2 === 0);
+  if (!list.length) return;
+
+  let index = Math.max(0, list.findIndex((image) => !image.hidden));
+  let paused = gallery.matches(":hover") || gallery.contains(document.activeElement);
   const show = (delta = 0) => {
-    const list = photos();
-    if (!list.length) {
-      const quote = gallery.querySelector(".quote-card");
-      if (quote) quote.hidden = false;
-      controls.hidden = true;
-      return;
-    }
+    const focusedImage = document.activeElement === list[index];
     index = (index + delta + list.length) % list.length;
     list.forEach((img, i) => {
       img.hidden = i !== index;
       img.setAttribute("aria-hidden", String(i !== index));
     });
-    dots.querySelectorAll("button").forEach((dot, i) => dot.setAttribute("aria-current", String(i === index)));
-    const quote = gallery.querySelector(".quote-card");
-    if (quote) quote.hidden = true;
+    if (focusedImage) list[index].focus({ preventScroll: true });
   };
-  const list = photos();
-  if (!list.length) return;
-  list.forEach((img, i) => {
-    img.addEventListener("click", () => { index = i; });
-  });
   if (list.length > 1) {
-    controls.append(makeArrow("prev", -1), makeArrow("next", 1));
-    list.forEach((_, i) => {
-      const dot = node("button", "gallery-dot");
-      dot.type = "button";
-      dot.setAttribute("aria-label", `Фото ${i + 1} из ${list.length}`);
-      dot.addEventListener("click", () => { paused = true; show(i - index); });
-      dots.append(dot);
-    });
-    gallery.append(controls, dots);
+    const controls = node("div", "gallery-controls");
+    const step = (delta) => { paused = true; show(delta); };
+    controls.append(galleryArrow(-1, step), galleryArrow(1, step));
+    gallery.append(controls);
     gallery.onmouseenter = () => { paused = true; };
     gallery.onmouseleave = () => { paused = false; };
     gallery.onfocusin = () => { paused = true; };
     gallery.onfocusout = event => { if (!gallery.contains(event.relatedTarget)) paused = false; };
-    let touchStartX = 0;
-    gallery.ontouchstart = event => { touchStartX = event.changedTouches[0].clientX; paused = true; };
-    gallery.ontouchend = event => {
-      const delta = event.changedTouches[0].clientX - touchStartX;
-      if (Math.abs(delta) > 45) show(delta < 0 ? 1 : -1);
-      paused = false;
+    gallery.onkeydown = event => {
+      if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+      event.preventDefault();
+      step(event.key === "ArrowLeft" ? -1 : 1);
     };
+    let touchStart;
+    gallery.ontouchstart = event => { touchStart = event.changedTouches[0]; paused = true; };
+    gallery.ontouchend = event => {
+      const direction = swipeDirection(touchStart, event.changedTouches[0]);
+      if (direction) show(direction);
+      gallery.ontouchcancel();
+    };
+    gallery.ontouchcancel = () => { touchStart = null; paused = gallery.contains(document.activeElement); };
     if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
       galleryTimer = setInterval(() => {
         if (!paused && !document.hidden && !document.querySelector(".gallery-photo-dialog")) show(1);
@@ -887,29 +1149,79 @@ function setupGallery(gallery) {
   }
   show();
 }
-function applySections(){
- const ids={"акции":"announcements","витрина":"showcase","меню":"menu","о нас":"about","контакты":"contacts"};
- const list=records("sections",rows.sections).sort((a,b)=>Number(a["Порядок"])-Number(b["Порядок"]));
- for(const item of list){const el=$(ids[key(item["Раздел"])]);if(!el)continue; if(!isYes(item["Активно"]))el.hidden=true;else if(el.id!=="announcements"&&el.id!=="showcase")el.hidden=false; $("main").append(el);}
- document.querySelectorAll('a[href^="#"]').forEach(a=>{const id=a.getAttribute("href").slice(1);const target=$(id);if(target&&["menu","about","contacts","directions"].includes(id))a.hidden=target.hidden||Boolean(target.closest("[hidden]"));});
+function applySections() {
+  const ids = new Map([["акции", "announcements"], ["витрина", "showcase"], ["меню", "menu"], ["о нас", "about"], ["контакты", "contacts"]]);
+  const list = records("sections", rows.sections).sort((a, b) => Number(a["Порядок"]) - Number(b["Порядок"]));
+  const ordered = new Map();
+  for (const item of list) {
+    const id = ids.get(key(item["Раздел"]));
+    if (!id) continue;
+    ordered.delete(id);
+    ordered.set(id, isYes(item["Активно"]));
+  }
+  for (const id of ids.values()) {
+    const section = $(id);
+    const content = id === "showcase" ? $("showcase-grid") : id === "announcements" ? section : null;
+    section.hidden = ordered.get(id) === false || Boolean(content && !content.childElementCount);
+  }
+
+  // Перемещение уже правильно расположенного раздела перезагружает встроенную карту.
+  let next = null;
+  for (const id of [...ordered.keys()].reverse()) {
+    const section = $(id);
+    if (section.nextElementSibling !== next) $("main").insertBefore(section, next);
+    next = section;
+  }
+  for (const anchor of document.querySelectorAll('a[href^="#"]')) {
+    const id = anchor.getAttribute("href").slice(1);
+    if (["menu", "about", "contacts", "directions"].includes(id)) anchor.hidden = Boolean($(id)?.closest("[hidden]"));
+  }
 }
-const renderers = { menu:()=>{renderMenu();renderShowcase();}, promos: renderPromos, settings: renderSettings, gallery:renderIntro, amenities:renderIntro, sections:()=>{renderPromos();renderShowcase();applySections();}, exceptions:renderHours };
-for (const render of Object.values(renderers)) render();
+
+function renderMenuSections() {
+  renderMenu();
+  renderShowcase();
+}
+
+const renderers = {
+  menu: renderMenuSections, promos: renderPromos, settings: renderSettings,
+  gallery: () => { renderHeroPhotos(); renderGalleryPhotos(); },
+  amenities: renderAmenities, sections: null, exceptions: renderHours
+};
+observeGallery();
+setupShowcaseScrolling();
+setupCategoryScrolling();
+renderMenuSections();
+renderPromos();
+renderSettings();
+if (!demo.amenities) renderAmenities();
+if (!demo.gallery) renderGalleryPhotos();
 applySections();
 window.setInterval(updateStatus, 15000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) updateStatus(); });
+
+let cacheTimer;
+function saveCachedRows() {
+  clearTimeout(cacheTimer);
+  cacheTimer = undefined;
+  try {
+    localStorage.setItem(cacheKey, JSON.stringify(cachedRows));
+  } catch {
+    // Данные всё равно доступны в текущей вкладке.
+  }
+}
+window.addEventListener("pagehide", () => {
+  if (cacheTimer !== undefined) saveCachedRows();
+});
 
 for (const [kind, render] of Object.entries(renderers)) {
   loadSheet(kind).then((result) => {
     rows[kind] = result;
     demo[kind] = false;
     cachedRows[kind] = result;
-    try {
-      localStorage.setItem(cacheKey, JSON.stringify(cachedRows));
-    } catch {
-      // Данные всё равно доступны в текущей вкладке.
-    }
-    render();
+    clearTimeout(cacheTimer);
+    cacheTimer = window.setTimeout(saveCachedRows, 120);
+    render?.();
     applySections();
   }).catch((error) => {
     console.warn(`Лист «${sheets[kind].name}» не обновился:`, error.message);
@@ -917,5 +1229,13 @@ for (const [kind, render] of Object.entries(renderers)) {
 }
 
 
-$("menu-more")?.addEventListener("click",()=>{menuLimit+=6;renderMenuItems(true);});
-$("menu-collapse")?.addEventListener("click",()=>{renderMenuItems();$("menu").scrollIntoView({block:"start",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth"});});
+$("menu-more")?.addEventListener("click", () => {
+  menuLimit += 6;
+  renderMenuItems(true);
+  if ($("menu-more").hidden) $("menu-collapse").focus();
+});
+$("menu-collapse")?.addEventListener("click", () => {
+  renderMenuItems();
+  $("menu-title").focus({ preventScroll: true });
+  $("menu").scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+});
