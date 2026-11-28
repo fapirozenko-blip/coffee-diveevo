@@ -7,9 +7,9 @@ const sheets = {
   menu: {
     name: "Меню",
     gid: 101,
-    columns: ["Категория", "Название", "Описание", "Объем", "Цена", "Теги", "Фото", "Наличие", "Блюдо дня"],
+    columns: ["Категория", "Название", "Описание", "Объем", "Цена", "Теги", "Фото", "Наличие", "На витрине"],
     required: ["Название", "Наличие"],
-    important: ["Цена", "Объем", "Категория", "Блюдо дня"]
+    important: ["Цена", "Объем", "Категория", "На витрине"]
   },
   promos: { name: "Акции", gid: 103, columns: ["Заголовок", "Текст", "Активно", "Фото"], required: ["Заголовок", "Текст", "Активно"] },
   settings: { name: "Настройки", gid: 104, columns: ["Параметр", "Значение"] },
@@ -72,7 +72,10 @@ const starterRows = {
   settings: [
     ["Название","Кофейня"],
     ["Слоган","То самое место, где хорошо"],
+    ["Акцент слогана","где хорошо"],
     ["Подзаголовок","Спешелти-кофе, завтраки весь день и уютные обеды в Дивеево"],
+    ["Текст кнопки меню","Смотреть меню"],
+    ["Текст кнопки маршрута","Как добраться"],
     ["Заголовок о нас","Уютная кофейня с характером и теплом"],
     ["Текст о нас","Мы создали пространство в Дивеево, куда приятно зайти после прогулки или перед дорогой: завариваем свежий спешелти-кофе, готовим авторские рафы, сытные завтраки весь день и домашние обеды. У нас светлый зал с живой зеленью, удобные столики с розетками у каждого места и витрина со свежими десертами."],
     ["Режим Пн-Пт","08:00 - 21:00"],
@@ -263,6 +266,10 @@ async function loadSheet(kind) {
   const text = await fetchSheetText("/export", { format: "csv", gid }, /^text\/csv\b/i);
   const [header, ...data] = parseCsv(text);
   const labels = header.map(key);
+  if (kind === "menu" && !labels.includes(key("На витрине"))) {
+    const legacyIndex = labels.indexOf(key("Блюдо дня"));
+    if (legacyIndex >= 0) labels[legacyIndex] = key("На витрине");
+  }
   const missingRequired = required.filter((label) => !labels.includes(key(label)));
   if (missingRequired.length) throw new Error(`Отсутствуют обязательные столбцы: ${missingRequired.join(", ")}`);
   const missingImportant = important.filter((label) => !labels.includes(key(label)));
@@ -457,9 +464,8 @@ function renderPromos() {
 }
 
 function renderShowcase() {
-  const active = records("menu", rows.menu).filter((item) => isYes(item["Наличие"]) && isYes(item["Блюдо дня"]) && item["Название"]);
   $("showcase-note").hidden = !demo.menu;
-  $("showcase-grid").replaceChildren(...active.map((item) => {
+  $("showcase-grid").replaceChildren(...menu.filter((item) => item.featured).map((item) => {
     const card = node("article", "showcase-card");
     const photo = imageUrl(item["Фото"]); if (photo) addImage(card, photo, item["Название"], { onError: () => card.classList.add("menu-card--no-photo") }); else card.classList.add("menu-card--no-photo");
     const category = key(item["Категория"]);
@@ -587,10 +593,21 @@ function setupCategoryScrolling() {
 }
 
 function renderMenu() {
-  const items = records("menu", rows.menu);
-  menu = items
-    .filter((item) => item["Название"] && isYes(item["Наличие"]))
-    .map((item) => ({ ...item, tags: splitList(item["Теги"]), categoryKey: key(item["Категория"]) }));
+  const available = new Map();
+  for (const item of records("menu", rows.menu)) {
+    if (!item["Название"] || !isYes(item["Наличие"])) continue;
+    const categoryKey = key(item["Категория"]);
+    const identity = JSON.stringify([key(item["Название"]), key(item["Объем"])]);
+    const featured = isYes(item["На витрине"]);
+    const duplicate = available.get(identity);
+    if (duplicate) {
+      // Отмеченный дубль добавляет исходную карточку в витрину, сохраняя её поля.
+      duplicate.featured ||= featured;
+      continue;
+    }
+    available.set(identity, { ...item, featured, categoryKey, tags: splitList(item["Теги"]) });
+  }
+  menu = [...available.values()];
   const categories = new Map();
   for (const item of menu) {
     const category = key(item["Категория"]);
@@ -668,17 +685,25 @@ function renderMenuItems(keepLimit = false) {
 }
 
 function renderIntroText() {
-  const name = settingOrDefault("Название кофейни", "Название");
+  const name = setting("Название", "Название кофейни") || defaultSettings["название"];
   const slogan = settingOrDefault("Слоган");
+  const accentKey = key("Акцент слогана");
+  const accent = settings.has(accentKey) ? setting("Акцент слогана")
+    : slogan === defaultSettings["слоган"] ? defaultSettings[accentKey] : "";
   const description = settingOrDefault("Подзаголовок", "Подзаголовок главного экрана");
   document.title = name;
   document.querySelectorAll("[data-name]").forEach((element) => { element.textContent = name; });
-  $("hero-name").textContent = name;
+  $("hero-name").textContent = setting("Надпись над слоганом") || name;
   $("hero-description").textContent = description;
-  if (slogan === defaultSettings["слоган"]) {
-    $("hero-title").replaceChildren(node("span", "", "То самое место,"), node("em", "", "где хорошо"));
+  $("hero-menu").textContent = settingOrDefault("Текст кнопки меню");
+  $("hero-route").textContent = settingOrDefault("Текст кнопки маршрута");
+
+  const title = $("hero-title");
+  const prefix = accent && slogan.endsWith(accent) ? slogan.slice(0, -accent.length) : null;
+  if (prefix !== null && !(/[\p{L}\p{N}]$/u.test(prefix) && /^[\p{L}\p{N}]/u.test(accent))) {
+    title.replaceChildren(...(prefix ? [node("span", "", prefix)] : []), node("em", "", accent));
   } else {
-    $("hero-title").textContent = slogan;
+    title.textContent = slogan;
   }
   $("about-title").textContent = settingOrDefault("Заголовок о нас", "Заголовок «О нас»");
   $("about-text").textContent = settingOrDefault("Текст о нас", "О нас", "Описание кофейни");
@@ -1038,18 +1063,7 @@ function renderContacts() {
   link("map-link", route);
   link("gis", gisButton);
   link("google-maps", googleButton);
-  const heroRoute = $("hero-route");
   const primaryRoute = yandexButton || gisButton || googleButton;
-  heroRoute.href = primaryRoute?.href || "#directions";
-  heroRoute.textContent = primaryRoute ? "Построить маршрут" : "Как добраться";
-  heroRoute.hidden = false;
-  if (primaryRoute) {
-    heroRoute.target = "_blank";
-    heroRoute.rel = "noopener noreferrer";
-  } else {
-    heroRoute.removeAttribute("target");
-    heroRoute.removeAttribute("rel");
-  }
 
   $("map-placeholder-text").textContent = location;
   $("map-actions").hidden = !primaryRoute;
